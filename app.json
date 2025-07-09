@@ -27,7 +27,20 @@
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
-    "bundleIdentifier": "com.platochat"
+    "bundleIdentifier": "com.platochat",
+    "privacyManifests": {
+      "NSPrivacyAccessedAPITypes": [
+        {
+          "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+          "NSPrivacyAccessedAPITypeReasons": [
+            "CA92.1"
+          ]
+        }
+      ]
+    },
+    "infoPlist": {
+      "ITSAppUsesNonExemptEncryption": false
+    }
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",
@@ -63,6 +76,10 @@
   "extra": {
     "ignite": {
       "version": "11.0.1"
+    },
+    "router": {},
+    "eas": {
+      "projectId": "0a5ec96e-6e3e-4d44-a355-f825a2debc4a"
     }
   }
 }
