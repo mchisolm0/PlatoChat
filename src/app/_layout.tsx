@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import { Slot, SplashScreen } from "expo-router"
+import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo"
+import { tokenCache } from "@clerk/clerk-expo/token-cache"
 import { useFonts } from "@expo-google-fonts/space-grotesk"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
@@ -17,6 +19,10 @@ if (__DEV__) {
   // to only execute this in development.
   require("src/devtools/ReactotronConfig.ts")
 }
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+if (!publishableKey) console.error("Missing Clerk publishable key")
 
 export { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary"
 
@@ -47,12 +53,16 @@ export default function Root() {
   }
 
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <ThemeProvider>
-        <KeyboardProvider>
-          <Slot />
-        </KeyboardProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <ClerkLoaded>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <ThemeProvider>
+            <KeyboardProvider>
+              <Slot />
+            </KeyboardProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </ClerkLoaded>
+    </ClerkProvider>
   )
 }
