@@ -10,6 +10,7 @@ import { initI18n } from "@/i18n"
 import { ThemeProvider } from "@/theme/context"
 import { customFontsToLoad } from "@/theme/typography"
 import { loadDateFnsLocale } from "@/utils/formatDate"
+import { Stack } from "expo-router/stack"
 
 SplashScreen.preventAutoHideAsync()
 
@@ -53,7 +54,10 @@ export default function Root() {
   }
 
   return (
-    <ClerkProvider tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={publishableKey}
+      tokenCache={tokenCache}
+    >
       <ClerkLoaded>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <ThemeProvider>
