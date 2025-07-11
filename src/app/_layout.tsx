@@ -53,7 +53,7 @@ export default function Root() {
   }
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+    <ClerkProvider tokenCache={tokenCache}>
       <ClerkLoaded>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <ThemeProvider>
