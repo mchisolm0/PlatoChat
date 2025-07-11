@@ -1,12 +1,15 @@
 import { useState } from "react"
-import { View } from "react-native"
+import { View, Platform } from "react-native"
 import { Link, useRouter } from "expo-router"
-import { useSignIn } from "@clerk/clerk-expo"
+import { isClerkAPIResponseError, useSignIn } from "@clerk/clerk-expo"
+import { ClerkAPIError } from "@clerk/types"
+import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 
 import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { spacing } from "@/theme/spacing"
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
@@ -14,6 +17,7 @@ export default function Page() {
 
   const [emailAddress, setEmailAddress] = useState("")
   const [password, setPassword] = useState("")
+  const [errors, setErrors] = useState<ClerkAPIError[]>([])
 
   const onSignInPress = async () => {
     if (!isLoaded) return
@@ -28,39 +32,62 @@ export default function Page() {
         await setActive({ session: signInAttempt.createdSessionId })
         router.replace("/")
       } else {
-        // todo: If the status isn't complete, check why. User might need to
-        // complete further steps.
         console.error(JSON.stringify(signInAttempt, null, 2))
       }
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+    } catch (error) {
+      if (isClerkAPIResponseError(error)) {
+        setErrors(error.errors)
+      } else {
+        console.error(JSON.stringify(error, null, 2))
+      }
     }
   }
 
   return (
-    <View>
-      <Text tx="auth:signin" />
-      <TextField
-        autoCapitalize="none"
-        value={emailAddress}
-        placeholderTx="auth:emailPlaceholder"
-        onChangeText={(emailAddress: string) => setEmailAddress(emailAddress)}
-      />
-      <TextField
-        value={password}
-        placeholderTx="auth:passwordPlaceholder"
-        secureTextEntry={true}
-        onChangeText={(password: string) => setPassword(password)}
-      />
-      <Button tx="auth:signin" onPress={onSignInPress} />
-      <View style={{ display: "flex", flexDirection: "row", gap: 3 }}>
-        <Text tx="auth:noAccount" />
-        <Link href="/sign-up" asChild>
-          <Text tx="auth:signup" />
-        </Link>
-      </View>
-    </View>
+    <Screen preset="fixed" contentContainerStyle={{ flex: 1 }} safeAreaEdges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <View style={{ paddingVertical: spacing.xl * 2, alignItems: "center" }}>
+          <Text tx="common:appName" preset="heading" />
+          <Text tx="common:appTagline" preset="subheading" />
+        </View>
+        <View style={{
+          paddingHorizontal: spacing.lg,
+          gap: spacing.md,
+          alignItems: "center"
+        }}>
+          <Text tx="auth:signInTitle" preset="subheading" />
+          <Text tx="auth:signInSubTitle" />
+          <TextField
+            autoCapitalize="none"
+            value={emailAddress}
+            placeholderTx="auth:emailPlaceholder"
+            onChangeText={(emailAddress: string) => setEmailAddress(emailAddress)}
+            inputWrapperStyle={{ width: "100%" }}
+          />
+          <TextField
+            value={password}
+            placeholderTx="auth:passwordPlaceholder"
+            secureTextEntry={true}
+            onChangeText={(password: string) => setPassword(password)}
+            inputWrapperStyle={{ width: "100%" }}
+          />
+          <View style={{ minHeight: spacing.xl, justifyContent: "center" }}>
+            {errors.map((error) => (
+              <Text key={error.code} text={error.message} preset="error" />
+            ))}
+          </View>
+          <Button tx="auth:signin" onPress={onSignInPress} style={{ width: "100%" }} />
+          <View style={{ flexDirection: "row", gap: spacing.xs }}>
+            <Text tx="auth:noAccount" />
+            <Link href="/sign-up" asChild>
+              <Text tx="auth:signup" />
+            </Link>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Screen>
   )
 }
