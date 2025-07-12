@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Slot, SplashScreen } from "expo-router"
 import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo"
-import { tokenCache } from "@clerk/clerk-expo/token-cache"
+import { tokenCache } from "@/utils/cache"
 import { useFonts } from "@expo-google-fonts/space-grotesk"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
@@ -10,7 +10,6 @@ import { initI18n } from "@/i18n"
 import { ThemeProvider } from "@/theme/context"
 import { customFontsToLoad } from "@/theme/typography"
 import { loadDateFnsLocale } from "@/utils/formatDate"
-import { Stack } from "expo-router/stack"
 
 SplashScreen.preventAutoHideAsync()
 
