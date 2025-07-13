@@ -50,6 +50,7 @@
     "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.9",
     "expo-system-ui": "~5.0.9",
+    "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
     "i18next": "^23.14.0",
     "intl-pluralrules": "^2.0.1",
