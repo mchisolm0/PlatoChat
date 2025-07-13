@@ -1,6 +1,7 @@
 import { Image, ImageStyle, TextStyle, View, ViewStyle } from "react-native"
 import { Link } from "expo-router"
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo"
+import { useUser } from "@clerk/clerk-expo"
+import { Authenticated, Unauthenticated, AuthLoading } from "convex/react"
 
 import { Screen } from "@/components/Screen"
 import { SignOutButton } from "@/components/SignOutButton"
@@ -40,18 +41,21 @@ export default function WelcomeScreen() {
       </View>
 
       <View style={themed([$bottomContainer, $bottomContainerInsets])}>
-        <SignedIn>
+        <Authenticated>
           <Text>{user?.emailAddresses[0].emailAddress}</Text>
           <SignOutButton />
-        </SignedIn>
-        <SignedOut>
+        </Authenticated>
+        <Unauthenticated>
           <Link href="/sign-in">
             <Text tx="auth:signin" />
           </Link>
           <Link href="/sign-up">
             <Text tx="auth:signup" />
           </Link>
-        </SignedOut>
+        </Unauthenticated>
+        <AuthLoading>
+          <Text>Loading...</Text>
+        </AuthLoading>
       </View>
     </Screen>
   )

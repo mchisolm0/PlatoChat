@@ -1,10 +1,10 @@
 import { Redirect, Stack } from "expo-router"
-import { useAuth } from "@clerk/clerk-expo"
+import { useConvexAuth } from "convex/react"
 
 export default function GuestLayout() {
-  const { isSignedIn } = useAuth()
+  const { isAuthenticated } = useConvexAuth()
 
-  if (isSignedIn) {
+  if (isAuthenticated) {
     return <Redirect href="/" />
   }
 
