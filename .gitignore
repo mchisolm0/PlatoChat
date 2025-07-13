@@ -86,6 +86,7 @@ web-build/
 # Configurations
 !env.js
 .env
+.env.local
 
 /coverage
 
