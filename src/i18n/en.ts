@@ -36,6 +36,12 @@ const en = {
     assistant: "Assistant",
   },
   settings: {
+    settings: "Settings",
+    accountInformation: "Account Information",
+    actions: "Actions",
+    email: "Email",
+    emailVerified: "✓ Verified",
+    emailNotVerified: "⚠ Not Verified",
     darkMode: "Dark mode",
     language: "Language",
     system: "System",
