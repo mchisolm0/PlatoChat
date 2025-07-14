@@ -2,6 +2,8 @@ import { View, ViewStyle, StyleProp, TextStyle } from "react-native"
 import { Text } from "./Text"
 import { TxKeyPath } from "@/i18n"
 import { spacing } from "@/theme/spacing"
+import { useAppTheme } from "@/theme/context"
+import { $styles } from "@/theme/styles"
 
 export interface SectionProps {
   /**
@@ -26,12 +28,24 @@ export interface SectionProps {
  * A reusable section component with a translated title
  */
 export function Section({ titleTx, style, titleStyle, children }: SectionProps) {
+  const { theme } = useAppTheme()
+  
   return (
-    <View style={[{ marginTop: spacing.lg }, style]}>
+    <View 
+      style={[
+        {
+          marginTop: spacing.lg,
+          backgroundColor: theme.colors.background,
+          borderRadius: spacing.sm,
+          padding: spacing.xs,
+        },
+        style
+      ]}
+    >
       <Text
         tx={titleTx}
         preset="subheading"
-        style={[{ marginBottom: spacing.xs }, titleStyle]}
+        style={[{ marginBottom: spacing.xs, color: theme.colors.text }, titleStyle]}
       />
       {children}
     </View>
