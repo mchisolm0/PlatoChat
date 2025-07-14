@@ -1,7 +1,6 @@
-import { useState } from "react"
-import { View, Platform } from "react-native"
+import { useState, useCallback, useRef } from "react"
+import { View } from "react-native"
 import { Link, useRouter } from "expo-router"
-import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 import { isClerkAPIResponseError, useSignUp } from "@clerk/clerk-expo"
 
 import { Button } from "@/components/Button"
@@ -10,25 +9,35 @@ import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { spacing } from "@/theme/spacing"
 import { ClerkAPIError } from "@clerk/types"
+import { KeyboardToolbar } from "react-native-keyboard-controller"
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp()
   const router = useRouter()
 
-  const [emailAddress, setEmailAddress] = useState("")
-  const [password, setPassword] = useState("")
+  const [formData, setFormData] = useState({
+    emailAddress: "",
+    password: "",
+    confirmPassword: "",
+  })
   const [pendingVerification, setPendingVerification] = useState(false)
   const [code, setCode] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [errors, setErrors] = useState<ClerkAPIError[]>([])
+
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+
+  const updateField = useCallback((field: string) => (value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const onSignUpPress = async () => {
     if (!isLoaded) return
 
     try {
       await signUp.create({
-        emailAddress,
-        password,
+        emailAddress: formData.emailAddress,
+        password: formData.password,
       })
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" })
@@ -77,58 +86,74 @@ export default function SignUpScreen() {
   }
 
   return (
-    <Screen preset="fixed" contentContainerStyle={{ flex: 1 }} safeAreaEdges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <View style={{ paddingVertical: spacing.xl * 2, alignItems: "center" }}>
+    <>
+      <Screen preset="fixed" contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.lg }} safeAreaEdges={["top"]}>
+        <View style={{
+          paddingVertical: spacing.xl,
+          alignItems: "center",
+          minHeight: spacing.lg
+        }}>
           <Text tx="common:appName" preset="heading" />
           <Text tx="common:appTagline" preset="subheading" />
         </View>
 
         <View style={{
-          paddingHorizontal: spacing.lg,
-          gap: spacing.md,
-          alignItems: "center",
+          flex: 1,
+          justifyContent: "space-between",
+          minHeight: spacing.xl * 10
         }}>
-          <Text tx="auth:createAccountTitle" preset="subheading" />
-          <Text tx="auth:createAccountSubTitle" />
-          <TextField
-            autoCapitalize="none"
-            value={emailAddress}
-            placeholderTx="auth:emailPlaceholder"
-            onChangeText={(email: string) => setEmailAddress(email)}
-            inputWrapperStyle={{ width: "100%" }}
-          />
-          <TextField
-            value={password}
-            placeholderTx="auth:passwordPlaceholder"
-            secureTextEntry={true}
-            onChangeText={(password: string) => setPassword(password)}
-            inputWrapperStyle={{ width: "100%" }}
-          />
-          <TextField
-            value={confirmPassword}
-            placeholderTx="auth:confirmPassword"
-            secureTextEntry={true}
-            onChangeText={(confirmPassword: string) => setConfirmPassword(confirmPassword)}
-            inputWrapperStyle={{ width: "100%" }}
-          />
-          <View style={{ minHeight: spacing.xl * 2, justifyContent: "center" }}>
-            {errors.map((error) => (
-              <Text key={error.code} text={error.message} preset="error" />
-            ))}
+          <View style={{
+            width: "100%",
+            gap: spacing.md,
+            alignItems: "center",
+          }}>
+            <Text tx="auth:createAccountSubTitle" />
+
+            <TextField
+              autoCapitalize="none"
+              value={formData.emailAddress}
+              placeholderTx="auth:emailPlaceholder"
+              onChangeText={updateField("emailAddress")}
+              inputWrapperStyle={{ width: "100%" }}
+            />
+            <TextField
+              ref={passwordRef}
+              value={formData.password}
+              placeholderTx="auth:passwordPlaceholder"
+              secureTextEntry={true}
+              onChangeText={updateField("password")}
+              inputWrapperStyle={{ width: "100%" }}
+            />
+            <TextField
+              ref={confirmPasswordRef}
+              value={formData.confirmPassword}
+              placeholderTx="auth:confirmPassword"
+              secureTextEntry={true}
+              onChangeText={updateField("confirmPassword")}
+              inputWrapperStyle={{ width: "100%" }}
+            />
           </View>
-          <Button tx="common:continue" onPress={onSignUpPress} style={{ width: "100%" }} />
-          <View style={{ flexDirection: "row", gap: spacing.xs }}>
-            <Text tx="auth:haveAccount" />
-            <Link href="/sign-in">
-              <Text tx="auth:signin" />
-            </Link>
+          <View style={{ minHeight: spacing.xl * 2, justifyContent: "center", alignItems: "center" }}>
+            <View style={{ minHeight: spacing.xl * 2, justifyContent: "center" }}>
+              {errors.map((error) => (
+                <Text key={error.code} text={error.message} preset="error" />
+              ))}
+            </View>
+            <Button tx="common:continue" onPress={onSignUpPress} style={{ width: "100%" }} />
+            <View style={{ flexDirection: "row", gap: spacing.xs }}>
+              <Text tx="auth:haveAccount" />
+              <Link href="/sign-in">
+                <Text tx="auth:signin" />
+              </Link>
+            </View>
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </Screen>
+      </Screen>
+      <KeyboardToolbar
+        showArrows={true}
+        insets={{ left: 16, right: 0 }}
+
+      />
+    </>
   )
 }
