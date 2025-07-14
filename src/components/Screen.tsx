@@ -17,6 +17,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
+import Animated, { useAnimatedStyle } from "react-native-reanimated"
+import { useGradualAnimation } from "@/utils/useGradualeAnimation"
 
 export const DEFAULT_BOTTOM_OFFSET = 50
 
@@ -239,6 +241,9 @@ function ScreenWithScrolling(props: ScreenProps) {
  * @returns {JSX.Element} The rendered `Screen` component.
  */
 export function Screen(props: ScreenProps) {
+  // Smooth keyboard animation padding
+  const { height } = useGradualAnimation()
+  const keyboardPadding = useAnimatedStyle(() => ({ height: height.value }), [])
   const {
     theme: { colors },
     themeContext,
@@ -267,17 +272,21 @@ export function Screen(props: ScreenProps) {
         {...SystemBarsProps}
       />
 
+      {/* Disabled default KB avoiding in favor of smooth animation */}
       <KeyboardAvoidingView
+        enabled={false}
         behavior={isIos ? "padding" : "height"}
         keyboardVerticalOffset={keyboardOffset}
         {...KeyboardAvoidingViewProps}
         style={[$styles.flex1, KeyboardAvoidingViewProps?.style]}
       >
+        {/* Screen content below will get extra padding when keyboard moves */}
         {isNonScrolling(props.preset) ? (
           <ScreenWithoutScrolling {...props} />
         ) : (
           <ScreenWithScrolling {...props} />
         )}
+        <Animated.View style={keyboardPadding} />
       </KeyboardAvoidingView>
     </View>
   )
