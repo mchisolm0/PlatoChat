@@ -1,0 +1,38 @@
+import { Agent } from "@convex-dev/agent"
+import { openai } from "@ai-sdk/openai"
+import { components } from "./_generated/api"
+import { mutation, action } from "./_generated/server"
+import { v } from "convex/values"
+
+const DEMO_USER_ID = "user-123"
+const chatAgent = new Agent(components.agent, {
+  name: "chat-agent",
+  chat: openai.chat("gpt-4.1-nano"),
+  textEmbedding: openai.embedding("text-embedding-3-small"),
+  instructions: "You are a helpful assistant. Be concise and friendly in your responses.",
+  maxSteps: 10,
+})
+
+export const createThread = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const { threadId } = await chatAgent.createThread(ctx, {
+      userId: DEMO_USER_ID,
+    })
+    return threadId
+  }
+})
+
+export const sendMessageToAgent = action({
+  args: {
+    threadId: v.string(),
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { thread } = await chatAgent.continueThread(ctx, {
+      threadId: args.threadId,
+    })
+    const result = await thread.generateText({ prompt: args.prompt })
+    return result.text
+  }
+})
