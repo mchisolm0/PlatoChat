@@ -44,6 +44,9 @@ export default function WelcomeScreen() {
       <View style={themed([$bottomContainer, $bottomContainerInsets])}>
         <Authenticated>
           <Text>{user?.emailAddresses[0].emailAddress}</Text>
+          <Link href="/(home)/chat">
+            <Text tx="chat:newChat" />
+          </Link>
           <Link href="/(settings)">
             <Text tx="settings:settings" />
           </Link>
@@ -102,3 +105,4 @@ const $welcomeFace: ImageStyle = {
 const $welcomeHeading: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.md,
 })
+
