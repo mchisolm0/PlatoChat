@@ -12,8 +12,7 @@ export default function ChatScreen() {
   const [threadId, setThreadId] = useState<string | null>(null)
 
   return (
-    <Screen preset="fixed" contentContainerStyle={{ flex: 1 }} safeAreaEdges={["top"]}>
-      <Text preset='heading'>Chat</Text>
+    <Screen preset="fixed" contentContainerStyle={{ flex: 1, justifyContent: "space-between" }} safeAreaEdges={["top"]}>
       {threadId ? (
         <ThreadView threadId={threadId} />
       ) : (

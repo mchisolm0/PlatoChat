@@ -6,6 +6,7 @@ import { View } from "react-native";
 import { Text } from "./Text";
 import { Button } from "./Button";
 import { spacing } from "@/theme/spacing";
+import { MessageList } from "./MessageList";
 
 interface Props {
   threadId: string;
@@ -20,7 +21,8 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
 
   return (
     <View style={{ flex: 1, gap: spacing.md }}>
-      <Text preset='heading'>Thread {threadId}</Text>
+      {isLoading && <Text preset='subheading'>Loading...</Text>}
+      <MessageList threadId={threadId} />
       <TextField
         value={message}
         editable={!isLoading}
@@ -53,8 +55,6 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
           }
         }}
       />
-      {isLoading && <Text preset='subheading'>Loading...</Text>}
-      {response && <Text>{response}</Text>}
     </View>
   )
 }
