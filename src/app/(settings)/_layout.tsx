@@ -14,12 +14,17 @@ export default function SettingsLayout() {
 
   return (
     <Stack>
-      <Stack.Screen name="index" options={{
-        headerShown: true,
-        headerLeft: () => <Button style={{ }} onPress={() => router.back()}>
-          <Icon icon="back" />
-        </Button>
-      }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          headerShown: true,
+          headerLeft: () => (
+            <Button style={{}} onPress={() => router.back()}>
+              <Icon icon="back" />
+            </Button>
+          ),
+        }}
+      />
       <Stack.Screen name="reset-password" options={{ presentation: "modal" }} />
     </Stack>
   )

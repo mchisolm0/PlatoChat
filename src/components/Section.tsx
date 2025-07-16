@@ -29,9 +29,9 @@ export interface SectionProps {
  */
 export function Section({ titleTx, style, titleStyle, children }: SectionProps) {
   const { theme } = useAppTheme()
-  
+
   return (
-    <View 
+    <View
       style={[
         {
           marginTop: spacing.lg,
@@ -39,7 +39,7 @@ export function Section({ titleTx, style, titleStyle, children }: SectionProps) 
           borderRadius: spacing.sm,
           padding: spacing.xs,
         },
-        style
+        style,
       ]}
     >
       <Text

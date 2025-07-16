@@ -45,24 +45,34 @@ export default function Page() {
 
   return (
     <>
-      <Screen preset="fixed" contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.lg }} safeAreaEdges={["top"]}>
-        <View style={{
-          paddingVertical: spacing.xl,
-          alignItems: "center",
-          minHeight: spacing.md
-        }}>
+      <Screen
+        preset="fixed"
+        contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.lg }}
+        safeAreaEdges={["top"]}
+      >
+        <View
+          style={{
+            paddingVertical: spacing.xl,
+            alignItems: "center",
+            minHeight: spacing.md,
+          }}
+        >
           <Text tx="common:appName" preset="heading" />
           <Text tx="common:appTagline" preset="subheading" />
         </View>
-        <View style={{
-          flex: 1,
-          justifyContent: "space-between",
-        }}>
-          <View style={{
-            width: "100%",
-            gap: spacing.md,
-            alignItems: "center",
-          }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "space-between",
+          }}
+        >
+          <View
+            style={{
+              width: "100%",
+              gap: spacing.md,
+              alignItems: "center",
+            }}
+          >
             <Text tx="auth:signInTitle" preset="subheading" />
             <TextField
               autoCapitalize="none"
@@ -95,10 +105,7 @@ export default function Page() {
           </View>
         </View>
       </Screen>
-      <KeyboardToolbar
-        showArrows={true}
-        insets={{ left: 16, right: 0 }}
-      />
+      <KeyboardToolbar showArrows={true} insets={{ left: 16, right: 0 }} />
     </>
   )
 }
