@@ -1,8 +1,9 @@
-import { Agent } from "@convex-dev/agent"
+import { Agent, vStreamArgs } from "@convex-dev/agent"
 import { openai } from "@ai-sdk/openai"
 import { components } from "./_generated/api"
-import { mutation, action } from "./_generated/server"
+import { mutation, action, query } from "./_generated/server"
 import { v } from "convex/values"
+import { paginationOptsValidator } from "convex/server"
 
 const DEMO_USER_ID = "user-123"
 const chatAgent = new Agent(components.agent, {
@@ -32,7 +33,35 @@ export const sendMessageToAgent = action({
     const { thread } = await chatAgent.continueThread(ctx, {
       threadId: args.threadId,
     })
-    const result = await thread.generateText({ prompt: args.prompt })
-    return result.text
+    const result = await thread.streamText(
+      { prompt: args.prompt },
+      { saveStreamDeltas: {chunking: "line"} }
+    )
+    return result.consumeStream()
+  }
+})
+
+export const listThreadMessages = query({
+  args: {
+    threadId: v.string(),
+    paginationOpts: paginationOptsValidator,
+    streamArgs: vStreamArgs,
+  },
+  handler: async (ctx, args) => {
+    const paginated = await chatAgent.listMessages(ctx, {
+      threadId: args.threadId,
+      paginationOpts: args.paginationOpts,
+      excludeToolMessages: true,
+    })
+
+    const streams = await chatAgent.syncStreams(ctx, {
+      threadId: args.threadId,
+      streamArgs: args.streamArgs,
+    })
+
+    return {
+      ...paginated,
+      streams,
+    }
   }
 })
