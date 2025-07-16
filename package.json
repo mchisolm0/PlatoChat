@@ -12,6 +12,7 @@
     "serve:web": "npx serve dist",
     "prebuild:clean": "npx expo prebuild --clean",
     "compile": "tsc --noEmit -p . --pretty",
+    "format": "prettier --write .",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "align-deps": "npx expo install --fix",
