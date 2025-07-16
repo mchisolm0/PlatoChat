@@ -14,29 +14,40 @@ interface Props {
 
 export const ThreadView: React.FC<Props> = ({ threadId }) => {
   const [message, setMessage] = useState<string>("")
-  const [response, setResponse] = useState<string>("")
+  const [response, setResponse] = useState<string | null>(null)
+  const [optimisticMessages, setOptimisticMessages] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const sendMessageToAgent = useAction(api.chat.sendMessageToAgent)
 
   return (
     <View style={{ flex: 1, gap: spacing.md }}>
+      <MessageList threadId={threadId} optimisticMessages={optimisticMessages} />
       {isLoading && <Text preset='subheading'>Loading...</Text>}
-      <MessageList threadId={threadId} />
       <TextField
         value={message}
         editable={!isLoading}
         onChangeText={setMessage}
         placeholder="Ask the agent..."
         onSubmitEditing={async () => {
+          if (!message.trim()) return;
+          const tempMessage = {
+            _id: `temp-${Date.now()}`,
+            role: 'user',
+            text: message,
+            threadId,
+          } as any;
+          setOptimisticMessages(prev => [...prev, tempMessage]);
+          setMessage("");
           setIsLoading(true)
           try {
-            const response = await sendMessageToAgent({ threadId, prompt: message })
+            const response = await sendMessageToAgent({ threadId, prompt: tempMessage.text })
             setResponse(response)
           } catch (error) {
             console.error(error)
           } finally {
-            setIsLoading(false)
+            setIsLoading(false);
+            setOptimisticMessages([]);
           }
         }}
       />
@@ -44,14 +55,24 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
         text="Send"
         disabled={isLoading}
         onPress={async () => {
-          setIsLoading(true)
+          if (!message.trim()) return;
+          const tempMessage = {
+            _id: `temp-${Date.now()}`,
+            role: 'user',
+            text: message,
+            threadId,
+          } as any;
+          setOptimisticMessages(prev => [...prev, tempMessage]);
+          setMessage("");
+          setIsLoading(true);
           try {
-            const response = await sendMessageToAgent({ threadId, prompt: message })
+            const response = await sendMessageToAgent({ threadId, prompt: tempMessage.text })
             setResponse(response)
           } catch (error) {
             console.error(error)
           } finally {
-            setIsLoading(false)
+            setIsLoading(false);
+            setOptimisticMessages([]);
           }
         }}
       />
