@@ -1,15 +1,15 @@
 import { Agent, vStreamArgs } from "@convex-dev/agent"
-import { openai } from "@ai-sdk/openai"
+import { openrouter } from "@openrouter/ai-sdk-provider"
 import { components } from "./_generated/api"
 import { mutation, action, query } from "./_generated/server"
 import { v } from "convex/values"
 import { paginationOptsValidator } from "convex/server"
 
 const DEMO_USER_ID = "user-123"
+
 const chatAgent = new Agent(components.agent, {
   name: "chat-agent",
-  chat: openai.chat("gpt-4.1-nano"),
-  textEmbedding: openai.embedding("text-embedding-3-small"),
+  chat: openrouter.chat("openai/gpt-4.1-nano"),
   instructions: "You are a helpful assistant. Be concise and friendly in your responses.",
   maxSteps: 10,
 })
