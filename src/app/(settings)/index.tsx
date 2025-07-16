@@ -31,7 +31,9 @@ export default function SettingsScreen() {
             marginBottom: spacing.sm,
           }}
         />
-        <Text preset="bold" style={{ fontSize: 18 }}>{user?.fullName}</Text>
+        <Text preset="bold" style={{ fontSize: 18 }}>
+          {user?.fullName}
+        </Text>
       </View>
 
       <Section titleTx="settings:accountInformation">
@@ -39,7 +41,9 @@ export default function SettingsScreen() {
           preset="default"
           headingTx="settings:email"
           content={user?.emailAddresses[0].emailAddress}
-          footerTx={user?.hasVerifiedEmailAddress ? "settings:emailVerified" : "settings:emailNotVerified"}
+          footerTx={
+            user?.hasVerifiedEmailAddress ? "settings:emailVerified" : "settings:emailNotVerified"
+          }
           footerStyle={{ color: user?.hasVerifiedEmailAddress ? colors.success : colors.error }}
           style={{ padding: spacing.md }}
         />

@@ -1,7 +1,7 @@
-import { defineApp } from "convex/server";
-import agent from "@convex-dev/agent/convex.config";
+import { defineApp } from "convex/server"
+import agent from "@convex-dev/agent/convex.config"
 
-const app = defineApp();
-app.use(agent);
+const app = defineApp()
+app.use(agent)
 
-export default app;
+export default app

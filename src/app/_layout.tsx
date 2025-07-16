@@ -61,10 +61,7 @@ export default function Root() {
   }
 
   return (
-    <ClerkProvider
-      publishableKey={publishableKey}
-      tokenCache={tokenCache}
-    >
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>

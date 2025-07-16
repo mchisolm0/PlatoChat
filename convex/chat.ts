@@ -21,7 +21,7 @@ export const createThread = mutation({
       userId: DEMO_USER_ID,
     })
     return threadId
-  }
+  },
 })
 
 export const sendMessageToAgent = action({
@@ -35,10 +35,10 @@ export const sendMessageToAgent = action({
     })
     const result = await thread.streamText(
       { prompt: args.prompt },
-      { saveStreamDeltas: {chunking: "line"} }
+      { saveStreamDeltas: { chunking: "line" } },
     )
     return result.consumeStream()
-  }
+  },
 })
 
 export const listThreadMessages = query({
@@ -63,5 +63,5 @@ export const listThreadMessages = query({
       ...paginated,
       streams,
     }
-  }
+  },
 })

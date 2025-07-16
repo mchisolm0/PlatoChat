@@ -10,11 +10,11 @@ export const useGradualAnimation = () => {
   useKeyboardHandler(
     {
       onMove: (e) => {
-        "worklet";
+        "worklet"
         height.value = e.height > 0 ? Math.max(e.height + OFFSET, totalOffset) : totalOffset
       },
     },
     [],
-  );
+  )
   return { height }
 }

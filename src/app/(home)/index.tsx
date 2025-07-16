@@ -105,4 +105,3 @@ const $welcomeFace: ImageStyle = {
 const $welcomeHeading: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.md,
 })
-
