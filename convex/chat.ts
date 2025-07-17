@@ -62,7 +62,10 @@ export const sendMessageToAgent = action({
       paginationOpts: { cursor: null, numItems: 10 },
     })
 
-    const userMessages = messages.page.filter((msg) => msg.message?.role === "user")
+    if (messages.page.length > 0 && userId?.tokenIdentifier !== messages.page[0]?.userId) {
+      console.log("Unauthorized. Please sign in.")
+      throw new Error("Unauthorized. Please sign in.")
+    }
 
     const { thread } = await chatAgent.continueThread(ctx, {
       threadId: args.threadId,
@@ -72,12 +75,27 @@ export const sendMessageToAgent = action({
       { saveStreamDeltas: { chunking: "line" } },
     )
 
-    if (userMessages.length === 0) {
-      const title = args.prompt.length > 50 ? args.prompt.substring(0, 47) + "..." : args.prompt
+    if (messages.page.length === 0 || messages.page.length === 4) {
+      const { generateText } = await import("ai")
+
+      let conversationContent = ""
+      if (messages.page.length === 0) {
+        conversationContent = args.prompt
+      } else {
+        const messageTexts = messages.page
+          .map((msg) => msg.text || "")
+          .filter((text) => text.length > 0)
+        conversationContent = [...messageTexts, args.prompt].join("\n")
+      }
+
+      const titleResult = await generateText({
+        model: openrouter("openai/gpt-4.1-nano"),
+        prompt: `Based on this conversation content, suggest a concise title (max 50 characters): ${conversationContent}\nTitle:`,
+      })
 
       await ctx.runMutation(components.agent.threads.updateThread, {
         threadId: args.threadId,
-        patch: { title },
+        patch: { title: titleResult.text.trim() },
       })
     }
 
