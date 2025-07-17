@@ -1,17 +1,18 @@
 import { Image, ImageStyle, TextStyle, View, ViewStyle } from "react-native"
-import { Link } from "expo-router"
+import { Link, useRouter } from "expo-router"
 import { useUser } from "@clerk/clerk-expo"
-import { Authenticated, Unauthenticated, AuthLoading } from "convex/react"
+import { Authenticated, Unauthenticated, AuthLoading, useMutation } from "convex/react"
 
+import { api } from "convex/_generated/api"
+
+import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
-import { SignOutButton } from "@/components/SignOutButton"
 import { Text } from "@/components/Text"
 import { isRTL } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
-import { Button } from "@/components/Button"
 
 const welcomeLogo = require("@assets/images/logo.png")
 const welcomeFace = require("@assets/images/welcome-face.png")
@@ -19,6 +20,13 @@ const welcomeFace = require("@assets/images/welcome-face.png")
 export default function WelcomeScreen() {
   const { themed, theme } = useAppTheme()
   const { user } = useUser()
+  const createThread = useMutation(api.chat.createThread)
+  const router = useRouter()
+  const handleNewChat = () => {
+    createThread().then((threadId) =>
+      router.push({ pathname: "/[threadId]", params: { threadId } }),
+    )
+  }
 
   const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"])
 
@@ -32,7 +40,6 @@ export default function WelcomeScreen() {
           tx="chat:newChat"
           preset="heading"
         />
-        <Text tx="chat:chatInputPlaceholder" preset="subheading" />
         <Image
           style={$welcomeFace}
           source={welcomeFace}
@@ -44,13 +51,10 @@ export default function WelcomeScreen() {
       <View style={themed([$bottomContainer, $bottomContainerInsets])}>
         <Authenticated>
           <Text>{user?.emailAddresses[0].emailAddress}</Text>
-          <Link href="/(home)/chat">
-            <Text tx="chat:newChat" />
-          </Link>
-          <Link href="/(settings)">
+          <Link href="/settings">
             <Text tx="settings:settings" />
           </Link>
-          <SignOutButton />
+          <Button tx="chat:newChat" onPress={handleNewChat} />
         </Authenticated>
         <Unauthenticated>
           <Link href="/sign-in">

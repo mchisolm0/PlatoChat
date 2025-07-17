@@ -1,9 +1,10 @@
 import { Agent, vStreamArgs } from "@convex-dev/agent"
 import { openrouter } from "@openrouter/ai-sdk-provider"
+import { paginationOptsValidator } from "convex/server"
+import { v } from "convex/values"
+
 import { components } from "./_generated/api"
 import { mutation, action, query } from "./_generated/server"
-import { v } from "convex/values"
-import { paginationOptsValidator } from "convex/server"
 
 const DEMO_USER_ID = "user-123"
 
@@ -30,6 +31,15 @@ export const sendMessageToAgent = action({
     prompt: v.string(),
   },
   handler: async (ctx, args) => {
+    const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
+      threadId: args.threadId,
+      order: "asc",
+      excludeToolMessages: true,
+      paginationOpts: { cursor: null, numItems: 10 },
+    })
+
+    const userMessages = messages.page.filter((msg) => msg.message?.role === "user")
+
     const { thread } = await chatAgent.continueThread(ctx, {
       threadId: args.threadId,
     })
@@ -37,6 +47,16 @@ export const sendMessageToAgent = action({
       { prompt: args.prompt },
       { saveStreamDeltas: { chunking: "line" } },
     )
+
+    if (userMessages.length === 0) {
+      const title = args.prompt.length > 50 ? args.prompt.substring(0, 47) + "..." : args.prompt
+
+      await ctx.runMutation(components.agent.threads.updateThread, {
+        threadId: args.threadId,
+        patch: { title },
+      })
+    }
+
     return result.consumeStream()
   },
 })
@@ -63,5 +83,28 @@ export const listThreadMessages = query({
       ...paginated,
       streams,
     }
+  },
+})
+
+export const listUserThreads = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    query: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (args.query && args.query.trim() !== "") {
+      return await ctx.runQuery(components.agent.threads.searchThreadTitles, {
+        query: args.query,
+        userId: DEMO_USER_ID,
+        limit: args.limit ?? 10,
+      })
+    }
+    const paginated = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
+      userId: DEMO_USER_ID,
+      order: "desc",
+      paginationOpts: args.paginationOpts,
+    })
+    return paginated.page
   },
 })

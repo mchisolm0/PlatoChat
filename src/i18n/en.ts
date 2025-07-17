@@ -29,11 +29,12 @@ const en = {
   },
   chat: {
     newChat: "New chat",
-    chatInputPlaceholder: "Type your message",
+    inputPlaceholder: "Type your message",
     send: "Send",
     model: "Model",
     user: "Me",
     assistant: "Assistant",
+    invalidThreadId: "Invalid thread ID",
   },
   settings: {
     settings: "Settings",

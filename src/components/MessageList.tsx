@@ -1,11 +1,14 @@
 import { useState, useCallback, useRef } from "react"
-import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, ViewStyle } from "react-native"
-import { Text } from "./Text"
+import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View, ViewStyle } from "react-native"
 import { useThreadMessages } from "@convex-dev/agent/react"
+
 import { api } from "convex/_generated/api"
-import { Card } from "./Card"
-import { spacing } from "@/theme/spacing"
+
 import { colors } from "@/theme/colors"
+import { spacing } from "@/theme/spacing"
+
+import { Card } from "./Card"
+import { Text } from "./Text"
 
 type MessageContent =
   | string
@@ -113,13 +116,11 @@ const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
   )
 }
 
-export const MessageList: React.FC<Props> = ({
-  threadId,
-  optimisticMessages = [],
-  pageSize = 10,
-}) => {
+export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const scrollViewRef = useRef<ScrollView>(null)
+
+  const isValidThreadId = threadId && threadId !== "chat" && threadId.length >= 10
 
   const {
     results: messagesResult,
@@ -127,7 +128,7 @@ export const MessageList: React.FC<Props> = ({
     loadMore,
   } = useThreadMessages(
     api.chat.listThreadMessages,
-    { threadId },
+    isValidThreadId ? { threadId: threadId as any } : "skip",
     { initialNumItems: pageSize, stream: true },
   )
 
@@ -146,28 +147,30 @@ export const MessageList: React.FC<Props> = ({
         }
       }
     },
-    [status, isLoadingMore, pageSize],
+    [status, isLoadingMore, pageSize, loadMore],
   )
 
+  if (!isValidThreadId) {
+    return (
+      <View style={{ flex: 1 }}>
+        <Text>Invalid thread ID</Text>
+      </View>
+    )
+  }
+
   const serverMessages = messagesResult || []
-  const getRole = (msg: Response) => (msg as any).role ?? (msg as any).message?.role
 
-  const dedupedOptimistic = optimisticMessages.filter((opt) => {
-    const optText = typeof opt.text === "string" ? opt.text : ""
-    return !serverMessages.some((srv) => {
-      const srvText = typeof srv.text === "string" ? srv.text : ""
-      return getRole(srv) === getRole(opt) && srvText === optText
-    })
-  })
-  const combinedMessages: Response[] = [...serverMessages, ...dedupedOptimistic]
-
-  if (combinedMessages.length === 0) {
-    return <Text>No messages</Text>
+  if (serverMessages.length === 0) {
+    return (
+      <View style={{ flex: 1 }}>
+        <Text>No messages</Text>
+      </View>
+    )
   }
 
   return (
     <ScrollView ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={400}>
-      {combinedMessages.map((item, index) => (
+      {serverMessages.map((item, index) => (
         <MessageItem key={item._id ?? item.id ?? index} response={item} />
       ))}
     </ScrollView>
