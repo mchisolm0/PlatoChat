@@ -18,6 +18,10 @@ const createTokenCache = (): TokenCache => {
     async saveToken(key: string, value: string) {
       return await SecureStore.setItemAsync(key, value)
     },
+    async clearToken(key: string) {
+      console.log(`Clearing token from cache: ${key.slice(0, 10)}`)
+      return await SecureStore.deleteItemAsync(key)
+    },
   }
 }
 
