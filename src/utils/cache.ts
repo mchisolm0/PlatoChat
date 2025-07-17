@@ -7,8 +7,8 @@ const createTokenCache = (): TokenCache => {
     async getToken(key: string) {
       try {
         const token = await SecureStore.getItemAsync(key)
-        if (token) console.log(`Token found in cache: ${token}`)
-        else console.log(`Token not found in cache: ${key}`)
+        if (token) console.log(`Token found in cache: ${token.slice(0, 10)}`)
+        else console.log(`Token not found in cache: ${key.slice(0, 10)}`)
         return token
       } catch (error) {
         console.error(`Error getting token from cache: ${error}`)
