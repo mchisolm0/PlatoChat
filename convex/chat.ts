@@ -31,6 +31,15 @@ export const sendMessageToAgent = action({
     prompt: v.string(),
   },
   handler: async (ctx, args) => {
+    const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
+      threadId: args.threadId,
+      order: "asc",
+      excludeToolMessages: true,
+      paginationOpts: { cursor: null, numItems: 10 },
+    })
+
+    const userMessages = messages.page.filter((msg) => msg.message?.role === "user")
+
     const { thread } = await chatAgent.continueThread(ctx, {
       threadId: args.threadId,
     })
@@ -38,6 +47,16 @@ export const sendMessageToAgent = action({
       { prompt: args.prompt },
       { saveStreamDeltas: { chunking: "line" } },
     )
+
+    if (userMessages.length === 0) {
+      const title = args.prompt.length > 50 ? args.prompt.substring(0, 47) + "..." : args.prompt
+
+      await ctx.runMutation(components.agent.threads.updateThread, {
+        threadId: args.threadId,
+        patch: { title },
+      })
+    }
+
     return result.consumeStream()
   },
 })
