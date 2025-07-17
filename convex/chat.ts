@@ -6,8 +6,6 @@ import { v } from "convex/values"
 import { components } from "./_generated/api"
 import { mutation, action, query } from "./_generated/server"
 
-const DEMO_USER_ID = "user-123"
-
 const chatAgent = new Agent(components.agent, {
   name: "chat-agent",
   chat: openrouter.chat("openai/gpt-4.1-nano"),
@@ -18,8 +16,21 @@ const chatAgent = new Agent(components.agent, {
 export const createThread = mutation({
   args: {},
   handler: async (ctx) => {
+    const userId = await ctx.auth.getUserIdentity()
+    console.log(
+      "createThread - userId:",
+      userId ? "exists" : "null",
+      userId?.tokenIdentifier ? `token: ${userId.tokenIdentifier.slice(0, 20)}...` : "no token",
+    )
+    if (!userId) {
+      console.log("Unauthorized. Please sign in.")
+      throw new Error("Unauthorized. Please sign in.")
+    } else if (!userId?.tokenIdentifier) {
+      console.log("Something is wrong with your sign in. Please contact support.")
+      throw new Error("Something is wrong with your sign in. Please contact support.")
+    }
     const { threadId } = await chatAgent.createThread(ctx, {
-      userId: DEMO_USER_ID,
+      userId: userId?.tokenIdentifier,
     })
     return threadId
   },
@@ -31,6 +42,19 @@ export const sendMessageToAgent = action({
     prompt: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity()
+    console.log(
+      "sendMessageToAgent - userId:",
+      userId ? "exists" : "null",
+      userId?.tokenIdentifier ? `token: ${userId.tokenIdentifier.slice(0, 20)}...` : "no token",
+    )
+    if (!userId) {
+      console.log("Unauthorized. Please sign in.")
+      throw new Error("Unauthorized. Please sign in.")
+    } else if (!userId?.tokenIdentifier) {
+      console.log("Something is wrong with your sign in. Please contact support.")
+      throw new Error("Something is wrong with your sign in. Please contact support.")
+    }
     const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
       threadId: args.threadId,
       order: "asc",
@@ -68,11 +92,24 @@ export const listThreadMessages = query({
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity()
+    if (!userId) {
+      console.log("Unauthorized. Please sign in.")
+      throw new Error("Unauthorized. Please sign in.")
+    } else if (!userId?.tokenIdentifier) {
+      console.log("Something is wrong with your sign in. Please contact support.")
+      throw new Error("Something is wrong with your sign in. Please contact support.")
+    }
     const paginated = await chatAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
       excludeToolMessages: true,
     })
+
+    if (paginated.page.length > 0 && userId?.tokenIdentifier !== paginated.page[0]?.userId) {
+      console.log("Unauthorized. Please sign in.")
+      throw new Error("Unauthorized. Please sign in.")
+    }
 
     const streams = await chatAgent.syncStreams(ctx, {
       threadId: args.threadId,
@@ -93,15 +130,28 @@ export const listUserThreads = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity()
+    console.log(
+      "listUserThreads - userId:",
+      userId ? "exists" : "null",
+      userId?.tokenIdentifier ? `token: ${userId.tokenIdentifier.slice(0, 20)}...` : "no token",
+    )
+    if (!userId) {
+      console.log("Unauthorized. Please sign in.")
+      throw new Error("Unauthorized. Please sign in.")
+    } else if (!userId?.tokenIdentifier) {
+      console.log("Something is wrong with your sign in. Please contact support.")
+      throw new Error("Something is wrong with your sign in. Please contact support.")
+    }
     if (args.query && args.query.trim() !== "") {
       return await ctx.runQuery(components.agent.threads.searchThreadTitles, {
         query: args.query,
-        userId: DEMO_USER_ID,
+        userId: userId?.tokenIdentifier,
         limit: args.limit ?? 10,
       })
     }
     const paginated = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
-      userId: DEMO_USER_ID,
+      userId: userId?.tokenIdentifier,
       order: "desc",
       paginationOpts: args.paginationOpts,
     })
