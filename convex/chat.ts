@@ -85,3 +85,26 @@ export const listThreadMessages = query({
     }
   },
 })
+
+export const listUserThreads = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    query: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (args.query && args.query.trim() !== "") {
+      return await ctx.runQuery(components.agent.threads.searchThreadTitles, {
+        query: args.query,
+        userId: DEMO_USER_ID,
+        limit: args.limit ?? 10,
+      })
+    }
+    const paginated = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
+      userId: DEMO_USER_ID,
+      order: "desc",
+      paginationOpts: args.paginationOpts,
+    })
+    return paginated.page
+  },
+})
