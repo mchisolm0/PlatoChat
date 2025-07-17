@@ -1,26 +1,100 @@
-import { Stack } from "expo-router/stack"
+import { useState, useCallback } from "react"
 import { useRouter } from "expo-router"
-import { Button } from "@/components/Button"
-import { Icon } from "@/components/Icon"
+import { useMutation, useQuery } from "convex/react"
+import { Drawer } from "expo-router/drawer"
+
+import { api } from "convex/_generated/api"
+
+import CustomDrawer from "@/components/CustomDrawer"
+import { PressableIcon } from "@/components/Icon"
+import { useAppTheme } from "@/theme/context"
+import { spacing } from "@/theme/spacing"
 
 export default function Layout() {
+  const { theme } = useAppTheme()
+  const createThread = useMutation(api.chat.createThread)
+  const [searchQuery, setSearchQuery] = useState("")
+  const filteredThreads = useQuery(api.chat.listUserThreads, {
+    query: searchQuery,
+    limit: 20,
+    paginationOpts: { cursor: null, numItems: 20 },
+  })
   const router = useRouter()
 
+  const handleLogin = () => {
+    router.push("/sign-in")
+  }
+
+  const handleThreadPress = useCallback(
+    (navigation: any) => (threadId: string) => {
+      router.push({ pathname: "/[threadId]", params: { threadId } })
+      navigation.closeDrawer()
+    },
+    [router],
+  )
+
+  const handleCreateThreadPress = useCallback(() => {
+    createThread().then((threadId) =>
+      router.replace({ pathname: "/[threadId]", params: { threadId } }),
+    )
+  }, [createThread, router])
+
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="chat"
+    <Drawer
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: theme.colors.background,
+        },
+        headerTitleStyle: {
+          color: theme.colors.text,
+        },
+      }}
+      drawerContent={(props) => (
+        <CustomDrawer
+          {...props}
+          chatThreads={filteredThreads}
+          handleThreadPress={handleThreadPress(props.navigation)}
+          onLogin={handleLogin}
+          onSearchChange={setSearchQuery}
+          searchQuery={searchQuery}
+        />
+      )}
+    >
+      <Drawer.Screen
+        name="index"
         options={{
-          headerShown: true,
           title: "New Chat",
-          headerLeft: () => (
-            <Button onPress={() => router.back()}>
-              <Icon icon="back" />
-            </Button>
+          headerRight: () => (
+            <PressableIcon
+              icon="plus"
+              size={spacing.lg}
+              color={theme.colors.palette.neutral100}
+              onPress={handleCreateThreadPress}
+            />
           ),
         }}
       />
-    </Stack>
+      <Drawer.Screen
+        name="[threadId]"
+        options={({ route }) => {
+          const threadId = (route.params as any)?.threadId as string
+          const thread = filteredThreads?.find((t) => t._id === threadId)
+          return {
+            title: thread?.title || "Chat",
+            headerRight: () => (
+              <PressableIcon
+                icon="plus"
+                size={spacing.lg}
+                color={theme.colors.palette.primary500}
+                style={{ marginRight: spacing.md }}
+                onPress={handleCreateThreadPress}
+              />
+            ),
+          }
+        }}
+      />
+      <Drawer.Screen name="settings" options={{ title: "Settings" }} />
+    </Drawer>
   )
 }
