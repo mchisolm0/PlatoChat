@@ -85,6 +85,16 @@ export const sendMessageToAgent = action({
   },
 })
 
+export const sendMessageToAgentAnonymous = action({
+  args: {
+    threadId: v.string(),
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return "Thank you for your interest! For now, please sign in to continue. We will add signed out access soon. Thanks!"
+  },
+})
+
 export const listThreadMessages = query({
   args: {
     threadId: v.string(),
