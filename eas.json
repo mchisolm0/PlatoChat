@@ -14,7 +14,10 @@
         "buildConfiguration": "Debug",
         "simulator": true
       },
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "APP_VARIANT": "development"
+      }
     },
     "development:device": {
       "extends": "development",
@@ -33,10 +36,14 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "APP_VARIANT": "preview"
+      }
     },
     "preview:device": {
       "extends": "preview",
+      "distribution": "internal",
       "ios": {
         "simulator": false
       }
