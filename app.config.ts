@@ -6,6 +6,39 @@ import { ExpoConfig, ConfigContext } from "@expo/config"
  */
 require("ts-node/register")
 
+const IS_DEV = process.env.APP_VARIANT === "development"
+const IS_PREVIEW = process.env.APP_VARIANT === "preview"
+
+const getAppName = () => {
+  if (IS_DEV) {
+    return "PlatoChat (Dev)"
+  }
+  if (IS_PREVIEW) {
+    return "PlatoChat (Preview)"
+  }
+  return "PlatoChat"
+}
+
+const getUniqueIdentifier = () => {
+  if (IS_DEV) {
+    return "com.platochat.dev"
+  }
+  if (IS_PREVIEW) {
+    return "com.platochat.preview"
+  }
+  return "com.platochat"
+}
+
+const getAppScheme = () => {
+  if (IS_DEV) {
+    return "platochat-dev"
+  }
+  if (IS_PREVIEW) {
+    return "platochat-preview"
+  }
+  return "platochat"
+}
+
 /**
  * @param config ExpoConfig coming from the static config app.json if it exists
  *
@@ -17,8 +50,12 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
 
   return {
     ...config,
+    name: getAppName(),
+    // Keep original slug to match EAS projectId
+    scheme: getAppScheme(),
     ios: {
       ...config.ios,
+      bundleIdentifier: getUniqueIdentifier(),
       // This privacyManifests is to get you started.
       // See Expo's guide on apple privacy manifests here:
       // https://docs.expo.dev/guides/apple-privacy/
@@ -33,6 +70,10 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
           },
         ],
       },
+    },
+    android: {
+      ...config.android,
+      package: getUniqueIdentifier(),
     },
     plugins: [
       ...existingPlugins,
