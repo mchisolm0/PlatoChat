@@ -12,6 +12,7 @@ import { isRTL } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { getAnonymousUserId } from "@/utils/anonymousUser"
 import { useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
 
 const welcomeLogo = require("@assets/images/logo.png")
@@ -21,9 +22,18 @@ export default function WelcomeScreen() {
   const { themed, theme } = useAppTheme()
   const { user } = useUser()
   const createThread = useMutation(api.chat.createThread)
+  const createThreadAnonymous = useMutation(api.chat.createThreadAnonymous)
   const router = useRouter()
+
   const handleNewChat = () => {
     createThread().then((threadId) =>
+      router.push({ pathname: "/[threadId]", params: { threadId } }),
+    )
+  }
+
+  const handleNewChatAnonymous = () => {
+    const anonymousUserId = getAnonymousUserId()
+    createThreadAnonymous({ anonymousUserId }).then((threadId) =>
       router.push({ pathname: "/[threadId]", params: { threadId } }),
     )
   }
@@ -57,12 +67,25 @@ export default function WelcomeScreen() {
           <Button tx="chat:newChat" onPress={handleNewChat} />
         </Authenticated>
         <Unauthenticated>
-          <Link href="/sign-in">
-            <Text tx="auth:signin" />
-          </Link>
-          <Link href="/sign-up">
-            <Text tx="auth:signup" />
-          </Link>
+          <Text preset="subheading" text="Try PlatoChat" style={themed($anonymousHeading)} />
+          <Button
+            text="Start Anonymous Chat (5 messages/day)"
+            onPress={handleNewChatAnonymous}
+            style={themed($anonymousButton)}
+          />
+          <Text
+            preset="formHelper"
+            text="Sign up for more generous access (100 messages/day on free tier, 500 messages/day on pro tier):"
+            style={themed($anonymousSubtext)}
+          />
+          <View style={themed($linkContainer)}>
+            <Link href="/sign-in">
+              <Text tx="auth:signin" style={{ color: theme.colors.tint }} />
+            </Link>
+            <Link href="/sign-up">
+              <Text tx="auth:signup" style={{ color: theme.colors.tint }} />
+            </Link>
+          </View>
         </Unauthenticated>
         <AuthLoading>
           <Text>Loading...</Text>
@@ -108,4 +131,24 @@ const $welcomeFace: ImageStyle = {
 
 const $welcomeHeading: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.md,
+})
+
+const $anonymousHeading: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  textAlign: "center",
+  marginBottom: spacing.lg,
+})
+
+const $anonymousButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.lg,
+})
+
+const $anonymousSubtext: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  textAlign: "center",
+  marginBottom: spacing.sm,
+})
+
+const $linkContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.md,
+  justifyContent: "center",
 })

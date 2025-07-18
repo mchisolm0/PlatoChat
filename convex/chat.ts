@@ -4,7 +4,8 @@ import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
 
 import { components } from "./_generated/api"
-import { mutation, action, query } from "./_generated/server"
+import { mutation, action, query, ActionCtx } from "./_generated/server"
+import { rateLimiter } from "./limiter"
 
 const chatAgent = new Agent(components.agent, {
   name: "chat-agent",
@@ -29,12 +30,51 @@ export const createThread = mutation({
       console.log("Something is wrong with your sign in. Please contact support.")
       throw new Error("Something is wrong with your sign in. Please contact support.")
     }
+
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, "createThread", {
+      key: userId.tokenIdentifier,
+    })
+    if (!ok) {
+      throw new Error(`Rate limited. Please try again in ${Math.ceil(retryAfter / 1000)} seconds.`)
+    }
+
     const { threadId } = await chatAgent.createThread(ctx, {
       userId: userId?.tokenIdentifier,
     })
     return threadId
   },
 })
+
+async function generateThreadTitle(
+  ctx: ActionCtx,
+  threadId: string,
+  prompt: string,
+  messages: any,
+) {
+  if (messages.page.length === 0 || messages.page.length === 4) {
+    const { generateText } = await import("ai")
+
+    let conversationContent = ""
+    if (messages.page.length === 0) {
+      conversationContent = prompt
+    } else {
+      const messageTexts = messages.page
+        .map((msg: any) => msg.text || "")
+        .filter((text: string) => text.length > 0)
+      conversationContent = [...messageTexts, prompt].join("\n")
+    }
+
+    const titleResult = await generateText({
+      model: openrouter("openai/gpt-4.1-nano"),
+      prompt: `Based on this conversation content, suggest a concise title (max 50 characters): ${conversationContent}\nTitle:`,
+    })
+
+    await ctx.runMutation(components.agent.threads.updateThread, {
+      threadId: threadId,
+      patch: { title: titleResult.text.trim() },
+    })
+  }
+}
 
 export const sendMessageToAgent = action({
   args: {
@@ -54,6 +94,24 @@ export const sendMessageToAgent = action({
     } else if (!userId?.tokenIdentifier) {
       console.log("Something is wrong with your sign in. Please contact support.")
       throw new Error("Something is wrong with your sign in. Please contact support.")
+    }
+
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, "sendMessage", {
+      key: userId.tokenIdentifier,
+    })
+    if (!ok) {
+      throw new Error(
+        `Rate limited. Please wait ${Math.ceil(retryAfter / 1000)} seconds before sending another message.`,
+      )
+    }
+
+    const aiRequestLimit = await rateLimiter.limit(ctx, "aiRequests", {
+      key: userId.tokenIdentifier,
+    })
+    if (!aiRequestLimit.ok) {
+      throw new Error(
+        `AI request rate limit exceeded. Please try again in ${Math.ceil(aiRequestLimit.retryAfter / 1000)} seconds.`,
+      )
     }
     const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
       threadId: args.threadId,
@@ -75,31 +133,30 @@ export const sendMessageToAgent = action({
       { saveStreamDeltas: { chunking: "line" } },
     )
 
-    if (messages.page.length === 0 || messages.page.length === 4) {
-      const { generateText } = await import("ai")
-
-      let conversationContent = ""
-      if (messages.page.length === 0) {
-        conversationContent = args.prompt
-      } else {
-        const messageTexts = messages.page
-          .map((msg) => msg.text || "")
-          .filter((text) => text.length > 0)
-        conversationContent = [...messageTexts, args.prompt].join("\n")
-      }
-
-      const titleResult = await generateText({
-        model: openrouter("openai/gpt-4.1-nano"),
-        prompt: `Based on this conversation content, suggest a concise title (max 50 characters): ${conversationContent}\nTitle:`,
-      })
-
-      await ctx.runMutation(components.agent.threads.updateThread, {
-        threadId: args.threadId,
-        patch: { title: titleResult.text.trim() },
-      })
-    }
+    await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
 
     return result.consumeStream()
+  },
+})
+
+export const createThreadAnonymous = mutation({
+  args: {
+    anonymousUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, "anonymousThreads", {
+      key: args.anonymousUserId,
+    })
+    if (!ok) {
+      throw new Error(
+        `Anonymous user limit reached. Try again in ${Math.ceil(retryAfter / (1000 * 60 * 60))} hours. If you sign in, you can create more threads and send more messages.`,
+      )
+    }
+
+    const { threadId } = await chatAgent.createThread(ctx, {
+      userId: args.anonymousUserId,
+    })
+    return threadId
   },
 })
 
@@ -107,9 +164,51 @@ export const sendMessageToAgentAnonymous = action({
   args: {
     threadId: v.string(),
     prompt: v.string(),
+    anonymousUserId: v.string(),
   },
   handler: async (ctx, args) => {
-    return "Thank you for your interest! For now, please sign in to continue. We will add signed out access soon. Thanks!"
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, "anonymousMessages", {
+      key: args.anonymousUserId,
+    })
+    if (!ok) {
+      const hoursLeft = Math.ceil(retryAfter / (1000 * 60 * 60))
+      throw new Error(
+        `Daily message limit reached. Try again in ${hoursLeft} hours or sign in to increase how many messages you can send.`,
+      )
+    }
+
+    const aiRequestLimit = await rateLimiter.limit(ctx, "anonymousAiRequests", {
+      key: args.anonymousUserId,
+    })
+    if (!aiRequestLimit.ok) {
+      const hoursLeft = Math.ceil(aiRequestLimit.retryAfter / (1000 * 60 * 60))
+      throw new Error(
+        `Daily AI request limit reached. Try again in ${hoursLeft} hours or sign in to increase how many AI requests you can make.`,
+      )
+    }
+
+    const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
+      threadId: args.threadId,
+      order: "asc",
+      excludeToolMessages: true,
+      paginationOpts: { cursor: null, numItems: 10 },
+    })
+
+    if (messages.page.length > 0 && args.anonymousUserId !== messages.page[0]?.userId) {
+      throw new Error("Unauthorized access to thread")
+    }
+
+    const { thread } = await chatAgent.continueThread(ctx, {
+      threadId: args.threadId,
+    })
+    const result = await thread.streamText(
+      { prompt: args.prompt },
+      { saveStreamDeltas: { chunking: "line" } },
+    )
+
+    await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
+
+    return result.consumeStream()
   },
 })
 
@@ -148,6 +247,60 @@ export const listThreadMessages = query({
       ...paginated,
       streams,
     }
+  },
+})
+
+export const listThreadMessagesAnonymous = query({
+  args: {
+    threadId: v.string(),
+    anonymousUserId: v.string(),
+    paginationOpts: paginationOptsValidator,
+    streamArgs: vStreamArgs,
+  },
+  handler: async (ctx, args) => {
+    const paginated = await chatAgent.listMessages(ctx, {
+      threadId: args.threadId,
+      paginationOpts: args.paginationOpts,
+      excludeToolMessages: true,
+    })
+
+    if (paginated.page.length > 0 && args.anonymousUserId !== paginated.page[0]?.userId) {
+      throw new Error("Unauthorized access to thread")
+    }
+
+    const streams = await chatAgent.syncStreams(ctx, {
+      threadId: args.threadId,
+      streamArgs: args.streamArgs,
+    })
+
+    return {
+      ...paginated,
+      streams,
+    }
+  },
+})
+
+export const listUserThreadsAnonymous = query({
+  args: {
+    anonymousUserId: v.string(),
+    paginationOpts: paginationOptsValidator,
+    query: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (args.query && args.query.trim() !== "") {
+      return await ctx.runQuery(components.agent.threads.searchThreadTitles, {
+        query: args.query,
+        userId: args.anonymousUserId,
+        limit: args.limit ?? 10,
+      })
+    }
+    const paginated = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
+      userId: args.anonymousUserId,
+      order: "desc",
+      paginationOpts: args.paginationOpts,
+    })
+    return paginated.page
   },
 })
 

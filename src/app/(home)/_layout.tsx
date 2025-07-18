@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "expo-router"
 import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
@@ -9,13 +9,22 @@ import CustomDrawer from "@/components/CustomDrawer"
 import { PressableIcon } from "@/components/Icon"
 import { useAppTheme } from "@/theme/context"
 import { spacing } from "@/theme/spacing"
+import { getAnonymousUserId } from "@/utils/anonymousUser"
 
 export default function Layout() {
   const { theme } = useAppTheme()
   const { isAuthenticated } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
+  const createThreadAnonymous = useMutation(api.chat.createThreadAnonymous)
   const [searchQuery, setSearchQuery] = useState("")
-  const filteredThreads = useQuery(
+
+  const [anonymousUserId, setAnonymousUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const id = getAnonymousUserId()
+    setAnonymousUserId(id)
+  }, [])
+  const authenticatedThreads = useQuery(
     api.chat.listUserThreads,
     isAuthenticated
       ? {
@@ -25,6 +34,20 @@ export default function Layout() {
         }
       : "skip",
   )
+
+  const anonymousThreads = useQuery(
+    api.chat.listUserThreadsAnonymous,
+    !isAuthenticated && anonymousUserId
+      ? {
+          anonymousUserId,
+          query: searchQuery,
+          limit: 20,
+          paginationOpts: { cursor: null, numItems: 20 },
+        }
+      : "skip",
+  )
+
+  const threads = isAuthenticated ? authenticatedThreads : anonymousThreads
   const router = useRouter()
 
   const handleLogin = () => {
@@ -40,10 +63,18 @@ export default function Layout() {
   )
 
   const handleCreateThreadPress = useCallback(() => {
-    createThread().then((threadId) =>
-      router.replace({ pathname: "/[threadId]", params: { threadId } }),
-    )
-  }, [createThread, router])
+    if (isAuthenticated) {
+      createThread().then((threadId) =>
+        router.replace({ pathname: "/[threadId]", params: { threadId } }),
+      )
+    } else if (anonymousUserId) {
+      createThreadAnonymous({ anonymousUserId }).then((threadId) =>
+        router.replace({ pathname: "/[threadId]", params: { threadId } }),
+      )
+    } else {
+      console.warn("Cannot create thread: anonymous user ID not yet initialized")
+    }
+  }, [isAuthenticated, createThread, createThreadAnonymous, anonymousUserId, router])
 
   return (
     <Drawer
@@ -59,7 +90,7 @@ export default function Layout() {
       drawerContent={(props) => (
         <CustomDrawer
           {...props}
-          chatThreads={filteredThreads}
+          chatThreads={threads}
           handleThreadPress={handleThreadPress(props.navigation)}
           onLogin={handleLogin}
           onSearchChange={setSearchQuery}
@@ -75,7 +106,8 @@ export default function Layout() {
             <PressableIcon
               icon="plus"
               size={spacing.lg}
-              color={theme.colors.palette.neutral100}
+              color={theme.colors.palette.primary500}
+              style={{ marginRight: spacing.md }}
               onPress={handleCreateThreadPress}
             />
           ),
@@ -85,7 +117,7 @@ export default function Layout() {
         name="[threadId]"
         options={({ route }) => {
           const threadId = (route.params as any)?.threadId as string
-          const thread = filteredThreads?.find((t) => t._id === threadId)
+          const thread = threads?.find((t: any) => t._id === threadId)
           return {
             title: thread?.title || "Chat",
             headerRight: () => (
