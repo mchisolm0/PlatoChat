@@ -13,7 +13,8 @@
       "ios": {
         "buildConfiguration": "Debug",
         "simulator": true
-      }
+      },
+      "channel": "development"
     },
     "development:device": {
       "extends": "development",
