@@ -61,6 +61,9 @@ export default function WelcomeScreen() {
       <View style={themed([$bottomContainer, $bottomContainerInsets])}>
         <Authenticated>
           <Text>{user?.emailAddresses[0].emailAddress}</Text>
+          <Link href="/pricing">
+            <Text text="Pricing" />
+          </Link>
           <Link href="/settings">
             <Text tx="settings:settings" />
           </Link>
