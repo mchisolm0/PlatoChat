@@ -1,10 +1,12 @@
 import { useState } from "react"
 import { View } from "react-native"
+import { useUser } from "@clerk/clerk-expo"
 import { useAction } from "convex/react"
 
 import { api } from "convex/_generated/api"
 
 import { spacing } from "@/theme/spacing"
+import { getAnonymousUserId } from "@/utils/anonymousUser"
 
 import { Button } from "./Button"
 import { MessageList } from "./MessageList"
@@ -19,8 +21,12 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
   const [message, setMessage] = useState<string>("")
   const [response, setResponse] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const { user } = useUser()
 
   const sendMessageToAgent = useAction(api.chat.sendMessageToAgent)
+  const sendMessageToAgentAnonymous = useAction(api.chat.sendMessageToAgentAnonymous)
+
+  const isAuthenticated = !!user
 
   if (!threadId || threadId === "chat" || threadId.length < 10) {
     return (
@@ -42,11 +48,21 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
           placeholderTx="chat:inputPlaceholder"
           onSubmitEditing={async () => {
             if (!message.trim()) return
+            setIsLoading(true)
             try {
-              sendMessageToAgent({ threadId, prompt: message })
+              if (isAuthenticated) {
+                await sendMessageToAgent({ threadId, prompt: message })
+              } else {
+                const anonymousUserId = getAnonymousUserId()
+                await sendMessageToAgentAnonymous({ threadId, prompt: message, anonymousUserId })
+              }
               setMessage("")
             } catch (error) {
               console.error(error)
+              // Show user-friendly error message for rate limits
+              if (error instanceof Error && error.message.includes("rate limit")) {
+                alert(error.message)
+              }
             } finally {
               setIsLoading(false)
             }
@@ -54,15 +70,24 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
         />
         <Button
           text="Send"
-          disabled={isLoading}
+          disabled={isLoading || !message.trim()}
           onPress={async () => {
             if (!message.trim()) return
             setIsLoading(true)
             try {
-              sendMessageToAgent({ threadId, prompt: message })
+              if (isAuthenticated) {
+                await sendMessageToAgent({ threadId, prompt: message })
+              } else {
+                const anonymousUserId = getAnonymousUserId()
+                await sendMessageToAgentAnonymous({ threadId, prompt: message, anonymousUserId })
+              }
               setMessage("")
             } catch (error) {
               console.error(error)
+              // Show user-friendly error message for rate limits
+              if (error instanceof Error && error.message.includes("rate limit")) {
+                alert(error.message)
+              }
             } finally {
               setIsLoading(false)
             }

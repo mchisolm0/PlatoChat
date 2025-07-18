@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View, ViewStyle } from "react-native"
+import { useRouter } from "expo-router"
 import { useThreadMessages } from "@convex-dev/agent/react"
 import { useConvexAuth } from "convex/react"
 
 import { api } from "convex/_generated/api"
 
-import { colors } from "@/theme/colors"
-import { spacing } from "@/theme/spacing"
+import { useAppTheme } from "@/theme/context"
+import { getAnonymousUserId } from "@/utils/anonymousUser"
 
+import { Button } from "./Button"
 import { Card } from "./Card"
 import { Text } from "./Text"
 
@@ -80,6 +82,8 @@ const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
   let contentText = ""
   const content = response.message?.content || response.text
 
+  const { theme } = useAppTheme()
+
   if (Array.isArray(content)) {
     contentText = content
       .filter((part) => part.type === "text" && part.text)
@@ -91,20 +95,20 @@ const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
 
   const isUser = role === "user"
   const $baseStyle: ViewStyle = {
-    padding: spacing.md,
-    marginVertical: spacing.xxs,
-    borderRadius: spacing.md,
+    padding: theme.spacing.md,
+    marginVertical: theme.spacing.xxs,
+    borderRadius: theme.spacing.md,
     maxWidth: "80%",
   }
   const $userStyle: ViewStyle = {
     alignSelf: "flex-end",
-    backgroundColor: colors.palette.primary600,
-    marginRight: spacing.md,
+    backgroundColor: theme.colors.palette.primary400,
+    marginRight: theme.spacing.md,
   }
   const $assistantStyle: ViewStyle = {
     alignSelf: "flex-start",
-    backgroundColor: colors.palette.neutral600,
-    marginLeft: spacing.md,
+    backgroundColor: theme.colors.palette.neutral400,
+    marginLeft: theme.spacing.md,
   }
   const $messageStyle = { ...$baseStyle, ...(isUser ? $userStyle : $assistantStyle) }
 
@@ -119,20 +123,43 @@ const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
 
 export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
+  const [retryCount, setRetryCount] = useState<number>(0)
   const scrollViewRef = useRef<ScrollView>(null)
   const { isAuthenticated } = useConvexAuth()
+  const router = useRouter()
 
   const isValidThreadId = threadId && threadId !== "chat" && threadId.length >= 10
 
+  // Use retryCount as dependency to force re-evaluation of anonymous ID
+  const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : null
+  // retryCount is used to trigger re-renders when user clicks "Try Again"
+  const _retryTrigger = retryCount
+
   const {
-    results: messagesResult,
-    status,
-    loadMore,
+    results: authenticatedMessages,
+    status: authenticatedStatus,
+    loadMore: authenticatedLoadMore,
   } = useThreadMessages(
     api.chat.listThreadMessages,
     isValidThreadId && isAuthenticated ? { threadId: threadId as any } : "skip",
     { initialNumItems: pageSize, stream: true },
   )
+
+  const {
+    results: anonymousMessages,
+    status: anonymousStatus,
+    loadMore: anonymousLoadMore,
+  } = useThreadMessages(
+    api.chat.listThreadMessagesAnonymous,
+    isValidThreadId && !isAuthenticated && anonymousUserId
+      ? { threadId: threadId as any, anonymousUserId }
+      : "skip",
+    { initialNumItems: pageSize, stream: true },
+  )
+
+  const messagesResult = isAuthenticated ? authenticatedMessages : anonymousMessages
+  const status = isAuthenticated ? authenticatedStatus : anonymousStatus
+  const loadMore = isAuthenticated ? authenticatedLoadMore : anonymousLoadMore
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -160,10 +187,27 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !anonymousUserId) {
+    const handleRetry = () => {
+      setRetryCount((prev) => prev + 1)
+      // Force re-render to try getting anonymous ID again
+    }
+
+    const handleSignIn = () => {
+      router.push("/sign-in")
+    }
+
     return (
-      <View style={{ flex: 1 }}>
-        <Text>Please sign in to view messages</Text>
+      <View
+        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: spacing.lg }}
+      >
+        <Text style={{ textAlign: "center", marginBottom: spacing.md }}>
+          Unable to load messages. Please try again or sign in for the best experience.
+        </Text>
+        <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <Button text="Try Again" onPress={handleRetry} />
+          <Button text="Sign In" onPress={handleSignIn} />
+        </View>
       </View>
     )
   }
