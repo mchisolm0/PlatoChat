@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View, ViewStyle } from "react-native"
 import { useThreadMessages } from "@convex-dev/agent/react"
+import { useConvexAuth } from "convex/react"
 
 import { api } from "convex/_generated/api"
 
@@ -119,6 +120,7 @@ const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
 export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const scrollViewRef = useRef<ScrollView>(null)
+  const { isAuthenticated } = useConvexAuth()
 
   const isValidThreadId = threadId && threadId !== "chat" && threadId.length >= 10
 
@@ -128,7 +130,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
     loadMore,
   } = useThreadMessages(
     api.chat.listThreadMessages,
-    isValidThreadId ? { threadId: threadId as any } : "skip",
+    isValidThreadId && isAuthenticated ? { threadId: threadId as any } : "skip",
     { initialNumItems: pageSize, stream: true },
   )
 
@@ -154,6 +156,14 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
     return (
       <View style={{ flex: 1 }}>
         <Text>Invalid thread ID</Text>
+      </View>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <View style={{ flex: 1 }}>
+        <Text>Please sign in to view messages</Text>
       </View>
     )
   }
