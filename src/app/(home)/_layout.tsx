@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import { useRouter } from "expo-router"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
 
 import { api } from "convex/_generated/api"
@@ -12,13 +12,19 @@ import { spacing } from "@/theme/spacing"
 
 export default function Layout() {
   const { theme } = useAppTheme()
+  const { isAuthenticated } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
   const [searchQuery, setSearchQuery] = useState("")
-  const filteredThreads = useQuery(api.chat.listUserThreads, {
-    query: searchQuery,
-    limit: 20,
-    paginationOpts: { cursor: null, numItems: 20 },
-  })
+  const filteredThreads = useQuery(
+    api.chat.listUserThreads,
+    isAuthenticated
+      ? {
+          query: searchQuery,
+          limit: 20,
+          paginationOpts: { cursor: null, numItems: 20 },
+        }
+      : "skip",
+  )
   const router = useRouter()
 
   const handleLogin = () => {
