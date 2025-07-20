@@ -32,10 +32,6 @@
         {
           "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
           "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
-        },
-        {
-          "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-          "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
         }
       ]
     },
@@ -85,5 +81,17 @@
   },
   "runtimeVersion": {
     "policy": "appVersion"
+  },
+  "expo": {
+    "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "plato-chat",
+          "organization": "matthew-chisolm"
+        }
+      ]
+    ]
   }
 }
