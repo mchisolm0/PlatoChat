@@ -17,13 +17,9 @@ import { loadDateFnsLocale } from "@/utils/formatDate"
 
 SplashScreen.preventAutoHideAsync()
 
-// Initialize Sentry crash reporting
 initCrashReporting()
 
 if (__DEV__) {
-  // Load Reactotron configuration in development. We don't want to
-  // include this in our production bundle, so we are using `if (__DEV__)`
-  // to only execute this in development.
   require("src/devtools/ReactotronConfig.ts")
 }
 
@@ -82,5 +78,4 @@ function Root() {
   )
 }
 
-// Wrap the root layout with Sentry's ErrorBoundary
 export default Sentry.wrap(Root)
