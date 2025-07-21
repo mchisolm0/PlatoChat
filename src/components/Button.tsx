@@ -14,7 +14,7 @@ import type { ThemedStyle, ThemedStyleArray } from "@/theme/types"
 
 import { Text, TextProps } from "./Text"
 
-type Presets = "default" | "filled" | "reversed" | "link"
+type Presets = "default" | "filled" | "reversed" | "link" | "small"
 
 export interface ButtonAccessoryProps {
   style: StyleProp<any>
@@ -188,9 +188,30 @@ const $baseViewStyle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   overflow: "hidden",
 })
 
+const $smallViewStyle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  minHeight: 44,
+  borderRadius: 6,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingVertical: spacing.xs,
+  paddingHorizontal: spacing.xs,
+  overflow: "hidden",
+})
+
 const $baseTextStyle: ThemedStyle<TextStyle> = ({ typography }) => ({
   fontSize: 16,
   lineHeight: 20,
+  fontFamily: typography.primary.medium,
+  textAlign: "center",
+  flexShrink: 1,
+  flexGrow: 0,
+  zIndex: 2,
+})
+
+const $smallTextStyle: ThemedStyle<TextStyle> = ({ typography, spacing }) => ({
+  fontSize: 12,
+  paddingHorizontal: spacing.xs,
+  lineHeight: 16,
   fontFamily: typography.primary.medium,
   textAlign: "center",
   flexShrink: 1,
@@ -238,6 +259,15 @@ const $viewPresets: Record<Presets, ThemedStyleArray<ViewStyle>> = {
       backgroundColor: "transparent",
     }),
   ],
+  small: [
+    $styles.row,
+    $smallViewStyle,
+    ({ colors }) => ({
+      borderWidth: 1,
+      borderColor: colors.palette.neutral400,
+      backgroundColor: colors.palette.neutral100,
+    }),
+  ],
 }
 
 const $textPresets: Record<Presets, ThemedStyleArray<TextStyle>> = {
@@ -253,6 +283,7 @@ const $textPresets: Record<Presets, ThemedStyleArray<TextStyle>> = {
       color: colors.tint,
     }),
   ],
+  small: [$smallTextStyle],
 }
 
 const $pressedViewPresets: Record<Presets, ThemedStyle<ViewStyle>> = {
@@ -260,6 +291,7 @@ const $pressedViewPresets: Record<Presets, ThemedStyle<ViewStyle>> = {
   filled: ({ colors }) => ({ backgroundColor: colors.palette.neutral400 }),
   reversed: ({ colors }) => ({ backgroundColor: colors.palette.neutral700 }),
   link: () => ({ backgroundColor: "transparent" }),
+  small: ({ colors }) => ({ backgroundColor: colors.palette.neutral200 }),
 }
 
 const $pressedTextPresets: Record<Presets, ThemedStyle<TextStyle>> = {
@@ -267,4 +299,5 @@ const $pressedTextPresets: Record<Presets, ThemedStyle<TextStyle>> = {
   filled: () => ({ opacity: 0.9 }),
   reversed: () => ({ opacity: 0.9 }),
   link: () => ({ opacity: 0.7 }),
+  small: () => ({ opacity: 0.9 }),
 }
