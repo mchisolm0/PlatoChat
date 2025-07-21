@@ -105,6 +105,7 @@ export default function Page() {
               <Link href="/sign-up" onPress={() => router.replace("/sign-up")}>
                 <Text tx="auth:signup" />
               </Link>
+              <Button preset="link" onPress={() => router.replace("/sign-up")} tx="auth:signup" />
             </View>
           </View>
         </View>

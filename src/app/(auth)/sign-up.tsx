@@ -161,9 +161,7 @@ export default function SignUpScreen() {
             <Button tx="common:continue" onPress={onSignUpPress} style={{ width: "100%" }} />
             <View style={{ flexDirection: "row", gap: spacing.xs }}>
               <Text tx="auth:haveAccount" />
-              <Link href="/sign-in" onPress={() => router.replace("/sign-in")}>
-                <Text tx="auth:signin" />
-              </Link>
+              <Button preset="link" onPress={() => router.replace("/sign-in")} tx="auth:signin" />
             </View>
           </View>
         </View>
