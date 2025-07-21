@@ -17,7 +17,7 @@ export default function SettingsScreen() {
     <Screen preset="scroll" contentContainerStyle={{ flex: 1, padding: spacing.lg }}>
       <View style={{ alignItems: "center" }}>
         <AutoImage
-          source={{ uri: user?.imageUrl }}
+          source={{ uri: user?.imageUrl || undefined }}
           style={{
             width: 100,
             height: 100,
@@ -31,16 +31,20 @@ export default function SettingsScreen() {
       </View>
 
       <Section titleTx="settings:accountInformation">
-        <Card
-          preset="default"
-          headingTx="settings:email"
-          content={user?.emailAddresses[0].emailAddress}
-          footerTx={
-            user?.hasVerifiedEmailAddress ? "settings:emailVerified" : "settings:emailNotVerified"
-          }
-          footerStyle={{ color: user?.hasVerifiedEmailAddress ? colors.success : colors.error }}
-          style={{ padding: spacing.md }}
-        />
+        {user?.emailAddresses?.length > 0 ? (
+          <Card
+            preset="default"
+            headingTx="settings:email"
+            content={user?.emailAddresses[0]?.emailAddress}
+            footerTx={
+              user?.hasVerifiedEmailAddress ? "settings:emailVerified" : "settings:emailNotVerified"
+            }
+            footerStyle={{ color: user?.hasVerifiedEmailAddress ? colors.success : colors.error }}
+            style={{ padding: spacing.md }}
+          />
+        ) : (
+          <Text tx="settings:noEmail" />
+        )}
       </Section>
 
       <Section titleTx="settings:actions">
