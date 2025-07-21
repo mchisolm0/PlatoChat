@@ -1,5 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from "react"
 
+import { reportCrash, ErrorType } from "@/utils/crashReporting"
+
 import { ErrorDetails } from "./ErrorDetails"
 
 interface Props {
@@ -31,15 +33,16 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!this.isEnabled()) {
       return
     }
+
     // Catch errors in any components below and re-render with error message
     this.setState({
       error,
       errorInfo,
     })
-
-    // You can also log error messages to an error reporting service here
-    // This is a great place to put BugSnag, Sentry, crashlytics, etc:
-    // reportCrash(error)
+    // Report the error to Sentry with additional context
+    reportCrash(error, ErrorType.FATAL, {
+      componentStack: errorInfo.componentStack || undefined,
+    })
   }
 
   // Reset the error back to null

@@ -1,4 +1,5 @@
-import { ExpoConfig, ConfigContext } from "@expo/config"
+import { withSentry } from "@sentry/react-native/expo"
+import { ExpoConfig, ConfigContext } from "expo/config"
 
 /**
  * Use ts-node here so we can use TypeScript for our Config Plugins
@@ -45,41 +46,83 @@ const getAppScheme = () => {
  * You can read more about Expo's Configuration Resolution Rules here:
  * https://docs.expo.dev/workflow/configuration/#configuration-resolution-rules
  */
-module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
+module.exports = ({ config }: ConfigContext): ExpoConfig => {
   const existingPlugins = config.plugins ?? []
 
-  return {
+  const expoConfig: ExpoConfig = {
     ...config,
     name: getAppName(),
-    // Keep original slug to match EAS projectId
+    slug: config.slug || "platochat",
     scheme: getAppScheme(),
+    version: config.version || "1.0.0",
+    orientation: "portrait",
+    userInterfaceStyle: "automatic",
+    icon: "./assets/images/app-icon-all.png",
+    updates: {
+      fallbackToCacheTimeout: 0,
+      url: "https://u.expo.dev/0a5ec96e-6e3e-4d44-a355-f825a2debc4a",
+    },
+    newArchEnabled: true,
+    jsEngine: "hermes",
+    assetBundlePatterns: ["**/*"],
+
     ios: {
       ...config.ios,
       bundleIdentifier: getUniqueIdentifier(),
-      // This privacyManifests is to get you started.
-      // See Expo's guide on apple privacy manifests here:
-      // https://docs.expo.dev/guides/apple-privacy/
-      // You may need to add more privacy manifests depending on your app's usage of APIs.
-      // More details and a list of "required reason" APIs can be found in the Apple Developer Documentation.
-      // https://developer.apple.com/documentation/bundleresources/privacy-manifest-files
+      icon: "./assets/images/app-icon-ios.png",
+      supportsTablet: true,
       privacyManifests: {
         NSPrivacyAccessedAPITypes: [
           {
             NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryUserDefaults",
-            NSPrivacyAccessedAPITypeReasons: ["CA92.1"], // CA92.1 = "Access info from same app, per documentation"
+            NSPrivacyAccessedAPITypeReasons: ["CA92.1"],
           },
         ],
       },
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
+
     android: {
       ...config.android,
       package: getUniqueIdentifier(),
+      icon: "./assets/images/app-icon-android-legacy.png",
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/app-icon-android-adaptive-foreground.png",
+        backgroundImage: "./assets/images/app-icon-android-adaptive-background.png",
+      },
+      allowBackup: false,
+      edgeToEdgeEnabled: true,
     },
+
+    web: {
+      favicon: "./assets/images/app-icon-web-favicon.png",
+      bundler: "metro",
+    },
+
     plugins: [
       ...existingPlugins,
       "expo-secure-store",
       "expo-web-browser",
+      "expo-localization",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/app-icon-android-adaptive-foreground.png",
+          imageWidth: 300,
+          resizeMode: "contain",
+          backgroundColor: "#191015",
+        },
+      ],
       require("./plugins/withSplashScreen").withSplashScreen,
     ],
   }
+
+  return withSentry(expoConfig, {
+    url: "https://sentry.io/",
+    project: "plato-chat",
+    organization: "matthew-chisolm",
+  })
 }
