@@ -3,13 +3,14 @@ import { View } from "react-native"
 import { Link, useRouter } from "expo-router"
 import { isClerkAPIResponseError, useSignIn } from "@clerk/clerk-expo"
 import { ClerkAPIError } from "@clerk/types"
+import { KeyboardToolbar } from "react-native-keyboard-controller"
 
 import { Button } from "@/components/Button"
+import { PressableIcon } from "@/components/Icon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { spacing } from "@/theme/spacing"
-import { KeyboardToolbar } from "react-native-keyboard-controller"
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
@@ -30,7 +31,7 @@ export default function Page() {
 
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId })
-        router.replace("/")
+        router.replace("/(drawer)/")
       } else {
         console.error(JSON.stringify(signInAttempt, null, 2))
       }
@@ -50,6 +51,9 @@ export default function Page() {
         contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.lg }}
         safeAreaEdges={["top"]}
       >
+        <View style={{ position: "absolute", top: spacing.md, left: spacing.md, zIndex: 1 }}>
+          <PressableIcon icon="back" onPress={() => router.back()} size={24} />
+        </View>
         <View
           style={{
             paddingVertical: spacing.xl,
@@ -98,7 +102,7 @@ export default function Page() {
             <Button tx="auth:signin" onPress={onSignInPress} style={{ width: "100%" }} />
             <View style={{ flexDirection: "row", gap: spacing.xs }}>
               <Text tx="auth:noAccount" />
-              <Link href="/sign-up" asChild>
+              <Link href="/sign-up" onPress={() => router.replace("/sign-up")}>
                 <Text tx="auth:signup" />
               </Link>
             </View>
