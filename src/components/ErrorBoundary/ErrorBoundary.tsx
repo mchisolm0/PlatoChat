@@ -34,15 +34,14 @@ export class ErrorBoundary extends Component<Props, State> {
       return
     }
 
-    // Report the error to Sentry with additional context
-    reportCrash(error, ErrorType.FATAL, {
-      componentStack: errorInfo.componentStack || undefined,
-    })
-
     // Catch errors in any components below and re-render with error message
     this.setState({
       error,
       errorInfo,
+    })
+    // Report the error to Sentry with additional context
+    reportCrash(error, ErrorType.FATAL, {
+      componentStack: errorInfo.componentStack || undefined,
     })
   }
 
