@@ -1,5 +1,5 @@
-import { ExpoConfig, ConfigContext } from "expo/config"
 import { withSentry } from "@sentry/react-native/expo"
+import { ExpoConfig, ConfigContext } from "expo/config"
 
 /**
  * Use ts-node here so we can use TypeScript for our Config Plugins
@@ -60,7 +60,7 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
     icon: "./assets/images/app-icon-all.png",
     updates: {
       fallbackToCacheTimeout: 0,
-      url: "https://u.expo.dev/0a5ec96e-6e3e-4d44-a355-f825a2debc4a"
+      url: "https://u.expo.dev/0a5ec96e-6e3e-4d44-a355-f825a2debc4a",
     },
     newArchEnabled: true,
     jsEngine: "hermes",
@@ -80,8 +80,8 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
         ],
       },
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
-      }
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
 
     android: {
@@ -90,15 +90,15 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       icon: "./assets/images/app-icon-android-legacy.png",
       adaptiveIcon: {
         foregroundImage: "./assets/images/app-icon-android-adaptive-foreground.png",
-        backgroundImage: "./assets/images/app-icon-android-adaptive-background.png"
+        backgroundImage: "./assets/images/app-icon-android-adaptive-background.png",
       },
       allowBackup: false,
-      edgeToEdgeEnabled: true
+      edgeToEdgeEnabled: true,
     },
 
     web: {
       favicon: "./assets/images/app-icon-web-favicon.png",
-      bundler: "metro"
+      bundler: "metro",
     },
 
     plugins: [
@@ -110,14 +110,14 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/app-icon-android-adaptive-foreground.png",
-          "imageWidth": 300,
-          "resizeMode": "contain",
-          "backgroundColor": "#191015"
-        }
+          image: "./assets/images/app-icon-android-adaptive-foreground.png",
+          imageWidth: 300,
+          resizeMode: "contain",
+          backgroundColor: "#191015",
+        },
       ],
       require("./plugins/withSplashScreen").withSplashScreen,
-    ]
+    ],
   }
 
   return withSentry(expoConfig, {
