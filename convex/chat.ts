@@ -6,17 +6,40 @@ import { v } from "convex/values"
 import { components } from "./_generated/api"
 import { mutation, action, query, ActionCtx } from "./_generated/server"
 import { rateLimiter } from "./limiter"
+import {
+  DEFAULT_MODEL_ID,
+  validateModelId,
+  validateModelIdForAnonymousUser,
+  ALL_MODELS,
+} from "./models"
 
-const chatAgent = new Agent(components.agent, {
-  name: "chat-agent",
-  chat: openrouter.chat("openai/gpt-4.1-nano"),
-  instructions: "You are a helpful assistant. Be concise and friendly in your responses.",
-  maxSteps: 10,
-})
+const chatAgents = new Map<string, Agent<any>>()
+
+for (const model of ALL_MODELS) {
+  chatAgents.set(
+    model.id,
+    new Agent(components.agent, {
+      name: `chat-agent-${model.provider}`,
+      chat: openrouter.chat(model.id),
+      instructions: "You are a helpful assistant. Be concise and friendly in your responses.",
+      maxSteps: 10,
+    }),
+  )
+}
+
+function getChatAgent(modelId: string): Agent<any> {
+  const agent = chatAgents.get(modelId)
+  if (!agent) {
+    return chatAgents.get(DEFAULT_MODEL_ID)!
+  }
+  return agent
+}
 
 export const createThread = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    modelId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
     console.log(
       "createThread - userId:",
@@ -37,6 +60,9 @@ export const createThread = mutation({
     if (!ok) {
       throw new Error(`Rate limited. Please try again in ${Math.ceil(retryAfter / 1000)} seconds.`)
     }
+
+    const validatedModelId = validateModelId(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId)
 
     const { threadId } = await chatAgent.createThread(ctx, {
       userId: userId?.tokenIdentifier,
@@ -65,7 +91,7 @@ async function generateThreadTitle(
     }
 
     const titleResult = await generateText({
-      model: openrouter("openai/gpt-4.1-nano"),
+      model: openrouter(DEFAULT_MODEL_ID),
       prompt: `Based on this conversation content, suggest a concise title (max 50 characters): ${conversationContent}\nTitle:`,
     })
 
@@ -80,6 +106,7 @@ export const sendMessageToAgent = action({
   args: {
     threadId: v.string(),
     prompt: v.string(),
+    modelId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
@@ -113,6 +140,9 @@ export const sendMessageToAgent = action({
         `AI request rate limit exceeded. Please try again in ${Math.ceil(aiRequestLimit.retryAfter / 1000)} seconds.`,
       )
     }
+    const validatedModelId = validateModelId(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId)
+
     const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
       threadId: args.threadId,
       order: "asc",
@@ -130,7 +160,7 @@ export const sendMessageToAgent = action({
     })
     const result = await thread.streamText(
       { prompt: args.prompt },
-      { saveStreamDeltas: { chunking: "line" } },
+      { saveStreamDeltas: { chunking: "word" } },
     )
 
     await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
@@ -142,6 +172,7 @@ export const sendMessageToAgent = action({
 export const createThreadAnonymous = mutation({
   args: {
     anonymousUserId: v.string(),
+    modelId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { ok, retryAfter } = await rateLimiter.limit(ctx, "anonymousThreads", {
@@ -152,6 +183,9 @@ export const createThreadAnonymous = mutation({
         `Anonymous user limit reached. Try again in ${Math.ceil(retryAfter / (1000 * 60 * 60))} hours. If you sign in, you can create more threads and send more messages.`,
       )
     }
+
+    const validatedModelId = validateModelIdForAnonymousUser(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId)
 
     const { threadId } = await chatAgent.createThread(ctx, {
       userId: args.anonymousUserId,
@@ -165,6 +199,7 @@ export const sendMessageToAgentAnonymous = action({
     threadId: v.string(),
     prompt: v.string(),
     anonymousUserId: v.string(),
+    modelId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { ok, retryAfter } = await rateLimiter.limit(ctx, "anonymousMessages", {
@@ -186,6 +221,9 @@ export const sendMessageToAgentAnonymous = action({
         `Daily AI request limit reached. Try again in ${hoursLeft} hours or sign in to increase how many AI requests you can make.`,
       )
     }
+
+    const validatedModelId = validateModelIdForAnonymousUser(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId)
 
     const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
       threadId: args.threadId,
@@ -227,7 +265,8 @@ export const listThreadMessages = query({
       console.log("Something is wrong with your sign in. Please contact support.")
       throw new Error("Something is wrong with your sign in. Please contact support.")
     }
-    const paginated = await chatAgent.listMessages(ctx, {
+    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID)
+    const paginated = await defaultAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
       excludeToolMessages: true,
@@ -238,7 +277,7 @@ export const listThreadMessages = query({
       throw new Error("Unauthorized. Please sign in.")
     }
 
-    const streams = await chatAgent.syncStreams(ctx, {
+    const streams = await defaultAgent.syncStreams(ctx, {
       threadId: args.threadId,
       streamArgs: args.streamArgs,
     })
@@ -258,7 +297,8 @@ export const listThreadMessagesAnonymous = query({
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
-    const paginated = await chatAgent.listMessages(ctx, {
+    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID)
+    const paginated = await defaultAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
       excludeToolMessages: true,
@@ -268,7 +308,7 @@ export const listThreadMessagesAnonymous = query({
       throw new Error("Unauthorized access to thread")
     }
 
-    const streams = await chatAgent.syncStreams(ctx, {
+    const streams = await defaultAgent.syncStreams(ctx, {
       threadId: args.threadId,
       streamArgs: args.streamArgs,
     })
