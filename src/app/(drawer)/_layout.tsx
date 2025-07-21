@@ -52,12 +52,12 @@ export default function Layout() {
   const router = useRouter()
 
   const handleLogin = () => {
-    router.push("/sign-in")
+    router.push("/(auth)/sign-in")
   }
 
   const handleThreadPress = useCallback(
     (navigation: any) => (threadId: string) => {
-      router.push({ pathname: "/[threadId]", params: { threadId } })
+      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } })
       navigation.closeDrawer()
     },
     [router],
@@ -66,11 +66,11 @@ export default function Layout() {
   const handleCreateThreadPress = useCallback(() => {
     if (isAuthenticated) {
       createThread().then((threadId) =>
-        router.replace({ pathname: "/[threadId]", params: { threadId } }),
+        router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
       )
     } else if (anonymousUserId) {
       createThreadAnonymous({ anonymousUserId }).then((threadId) =>
-        router.replace({ pathname: "/[threadId]", params: { threadId } }),
+        router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
       )
     } else {
       Sentry.captureException(

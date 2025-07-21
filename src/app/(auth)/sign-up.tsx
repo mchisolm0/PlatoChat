@@ -4,6 +4,7 @@ import { Link, useRouter } from "expo-router"
 import { isClerkAPIResponseError, useSignUp } from "@clerk/clerk-expo"
 
 import { Button } from "@/components/Button"
+import { PressableIcon } from "@/components/Icon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
@@ -63,7 +64,7 @@ export default function SignUpScreen() {
 
       if (signUpAttempt.status === "complete") {
         await setActive({ session: signUpAttempt.createdSessionId })
-        router.replace("/")
+        router.replace("/(drawer)/")
       } else {
         console.error(JSON.stringify(signUpAttempt, null, 2))
       }
@@ -95,6 +96,9 @@ export default function SignUpScreen() {
         contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.lg }}
         safeAreaEdges={["top"]}
       >
+        <View style={{ position: "absolute", top: spacing.md, left: spacing.md, zIndex: 1 }}>
+          <PressableIcon icon="back" onPress={() => router.back()} size={24} />
+        </View>
         <View
           style={{
             paddingVertical: spacing.xl,
@@ -157,9 +161,7 @@ export default function SignUpScreen() {
             <Button tx="common:continue" onPress={onSignUpPress} style={{ width: "100%" }} />
             <View style={{ flexDirection: "row", gap: spacing.xs }}>
               <Text tx="auth:haveAccount" />
-              <Link href="/sign-in">
-                <Text tx="auth:signin" />
-              </Link>
+              <Button preset="link" onPress={() => router.replace("/sign-in")} tx="auth:signin" />
             </View>
           </View>
         </View>

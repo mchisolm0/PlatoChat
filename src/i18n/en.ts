@@ -41,6 +41,7 @@ const en = {
     accountInformation: "Account Information",
     actions: "Actions",
     email: "Email",
+    noEmail: "No email address found",
     emailVerified: "✓ Verified",
     emailNotVerified: "⚠ Not Verified",
     darkMode: "Dark mode",

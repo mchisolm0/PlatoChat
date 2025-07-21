@@ -1,5 +1,5 @@
-import { Image, ImageStyle, TextStyle, View, ViewStyle } from "react-native"
-import { Link, useRouter } from "expo-router"
+import { Image, ImageStyle, TextStyle, View, ViewStyle, Pressable } from "react-native"
+import { useRouter } from "expo-router"
 import { useUser } from "@clerk/clerk-expo"
 import { Authenticated, Unauthenticated, AuthLoading, useMutation } from "convex/react"
 
@@ -27,14 +27,14 @@ export default function WelcomeScreen() {
 
   const handleNewChat = () => {
     createThread().then((threadId) =>
-      router.push({ pathname: "/[threadId]", params: { threadId } }),
+      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
     )
   }
 
   const handleNewChatAnonymous = () => {
     const anonymousUserId = getAnonymousUserId()
     createThreadAnonymous({ anonymousUserId }).then((threadId) =>
-      router.push({ pathname: "/[threadId]", params: { threadId } }),
+      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
     )
   }
 
@@ -61,9 +61,9 @@ export default function WelcomeScreen() {
       <View style={themed([$bottomContainer, $bottomContainerInsets])}>
         <Authenticated>
           <Text>{user?.emailAddresses[0].emailAddress}</Text>
-          <Link href="/settings">
+          <Pressable onPress={() => router.push("/(drawer)/settings")}>
             <Text tx="settings:settings" />
-          </Link>
+          </Pressable>
           <Button tx="chat:newChat" onPress={handleNewChat} />
         </Authenticated>
         <Unauthenticated>
@@ -79,12 +79,12 @@ export default function WelcomeScreen() {
             style={themed($anonymousSubtext)}
           />
           <View style={themed($linkContainer)}>
-            <Link href="/sign-in">
+            <Pressable onPress={() => router.push("/(auth)/sign-in")}>
               <Text tx="auth:signin" style={{ color: theme.colors.tint }} />
-            </Link>
-            <Link href="/sign-up">
+            </Pressable>
+            <Pressable onPress={() => router.push("/(auth)/sign-up")}>
               <Text tx="auth:signup" style={{ color: theme.colors.tint }} />
-            </Link>
+            </Pressable>
           </View>
         </Unauthenticated>
         <AuthLoading>

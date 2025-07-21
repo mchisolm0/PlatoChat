@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Slot, SplashScreen } from "expo-router"
+import { Stack, SplashScreen } from "expo-router"
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo"
 import { useFonts } from "@expo-google-fonts/space-grotesk"
 import * as Sentry from "@sentry/react-native"
@@ -68,7 +68,10 @@ function Root() {
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>
             <ThemeProvider>
               <KeyboardProvider>
-                <Slot />
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                </Stack>
               </KeyboardProvider>
             </ThemeProvider>
           </SafeAreaProvider>
