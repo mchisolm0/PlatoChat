@@ -29,10 +29,10 @@ export default function Layout() {
     api.chat.listUserThreads,
     isAuthenticated
       ? {
-          query: searchQuery,
-          limit: 20,
-          paginationOpts: { cursor: null, numItems: 20 },
-        }
+        query: searchQuery,
+        limit: 20,
+        paginationOpts: { cursor: null, numItems: 20 },
+      }
       : "skip",
   )
 
@@ -40,11 +40,11 @@ export default function Layout() {
     api.chat.listUserThreadsAnonymous,
     !isAuthenticated && anonymousUserId
       ? {
-          anonymousUserId,
-          query: searchQuery,
-          limit: 20,
-          paginationOpts: { cursor: null, numItems: 20 },
-        }
+        anonymousUserId,
+        query: searchQuery,
+        limit: 20,
+        paginationOpts: { cursor: null, numItems: 20 },
+      }
       : "skip",
   )
 
