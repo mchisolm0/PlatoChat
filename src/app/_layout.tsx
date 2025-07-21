@@ -1,24 +1,19 @@
 import { useEffect, useState } from "react"
 import { Slot, SplashScreen } from "expo-router"
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo"
-import { useFonts } from "@expo-google-fonts/space-grotesk"
-import * as Sentry from "@sentry/react-native"
 import { ConvexReactClient } from "convex/react"
 import { ConvexProviderWithClerk } from "convex/react-clerk"
+import { tokenCache } from "@/utils/cache"
+import { useFonts } from "@expo-google-fonts/space-grotesk"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { initI18n } from "@/i18n"
 import { ThemeProvider } from "@/theme/context"
 import { customFontsToLoad } from "@/theme/typography"
-import { tokenCache } from "@/utils/cache"
-import { initCrashReporting } from "@/utils/crashReporting"
 import { loadDateFnsLocale } from "@/utils/formatDate"
 
 SplashScreen.preventAutoHideAsync()
-
-// Initialize Sentry crash reporting
-initCrashReporting()
 
 if (__DEV__) {
   // Load Reactotron configuration in development. We don't want to
@@ -39,7 +34,7 @@ const convexClient = new ConvexReactClient(convexUrl, {
 
 export { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary"
 
-function Root() {
+export default function Root() {
   const [fontsLoaded, fontError] = useFonts(customFontsToLoad)
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
 
@@ -81,6 +76,3 @@ function Root() {
     </ClerkProvider>
   )
 }
-
-// Wrap the root layout with Sentry's ErrorBoundary
-export default Sentry.wrap(Root)

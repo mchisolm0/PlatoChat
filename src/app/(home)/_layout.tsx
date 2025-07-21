@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "expo-router"
-import * as Sentry from "@sentry/react-native"
 import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
 
@@ -73,9 +72,6 @@ export default function Layout() {
         router.replace({ pathname: "/[threadId]", params: { threadId } }),
       )
     } else {
-      Sentry.captureException(
-        new Error("Cannot create thread: anonymous user ID not yet initialized"),
-      )
       console.warn("Cannot create thread: anonymous user ID not yet initialized")
     }
   }, [isAuthenticated, createThread, createThreadAnonymous, anonymousUserId, router])

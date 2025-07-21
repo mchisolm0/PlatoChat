@@ -97,5 +97,3 @@ web-build/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-
-.env.local

@@ -1,9 +1,9 @@
-const {
-  getSentryExpoConfig
-} = require("@sentry/react-native/metro");
+/* eslint-env node */
+// Learn more https://docs.expo.io/guides/customizing-metro
+const { getDefaultConfig } = require("expo/metro-config")
 
 /** @type {import('expo/metro-config').MetroConfig} */
-const config = getSentryExpoConfig(__dirname)
+const config = getDefaultConfig(__dirname)
 
 config.transformer.getTransformOptions = async () => ({
   transform: {
