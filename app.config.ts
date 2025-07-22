@@ -54,7 +54,7 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
     name: getAppName(),
     slug: "PlatoChat",
     scheme: getAppScheme(),
-    version: config.version || "1.0.0",
+    version: "1.0.0",
     orientation: "portrait",
     userInterfaceStyle: "automatic",
     icon: "./assets/images/app-icon-all.png",
