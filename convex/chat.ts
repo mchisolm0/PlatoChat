@@ -27,10 +27,20 @@ for (const model of ALL_MODELS) {
   )
 }
 
-function getChatAgent(modelId: string): Agent<any> {
-  const agent = chatAgents.get(modelId)
+function getChatAgent(modelId: string, isAnonymous: boolean = false): Agent<any> {
+  const effectiveModelId = isAnonymous
+    ? validateModelIdForAnonymousUser(modelId)
+    : validateModelId(modelId)
+
+  const agent = chatAgents.get(effectiveModelId)
   if (!agent) {
-    return chatAgents.get(DEFAULT_MODEL_ID)!
+    const defaultAgent = chatAgents.get(DEFAULT_MODEL_ID)
+    if (!defaultAgent) {
+      throw new Error(
+        `Critical error: Default model '${DEFAULT_MODEL_ID}' not found in chat agents. This should never happen.`,
+      )
+    }
+    return defaultAgent
   }
   return agent
 }
@@ -62,7 +72,7 @@ export const createThread = mutation({
     }
 
     const validatedModelId = validateModelId(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId)
+    const chatAgent = getChatAgent(validatedModelId, false)
 
     const { threadId } = await chatAgent.createThread(ctx, {
       userId: userId?.tokenIdentifier,
@@ -141,7 +151,7 @@ export const sendMessageToAgent = action({
       )
     }
     const validatedModelId = validateModelId(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId)
+    const chatAgent = getChatAgent(validatedModelId, false)
 
     const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
       threadId: args.threadId,
@@ -185,7 +195,7 @@ export const createThreadAnonymous = mutation({
     }
 
     const validatedModelId = validateModelIdForAnonymousUser(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId)
+    const chatAgent = getChatAgent(validatedModelId, true)
 
     const { threadId } = await chatAgent.createThread(ctx, {
       userId: args.anonymousUserId,
@@ -223,7 +233,7 @@ export const sendMessageToAgentAnonymous = action({
     }
 
     const validatedModelId = validateModelIdForAnonymousUser(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId)
+    const chatAgent = getChatAgent(validatedModelId, true)
 
     const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
       threadId: args.threadId,
@@ -265,7 +275,7 @@ export const listThreadMessages = query({
       console.log("Something is wrong with your sign in. Please contact support.")
       throw new Error("Something is wrong with your sign in. Please contact support.")
     }
-    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID)
+    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID, false)
     const paginated = await defaultAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
@@ -297,7 +307,7 @@ export const listThreadMessagesAnonymous = query({
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
-    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID)
+    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID, false)
     const paginated = await defaultAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
