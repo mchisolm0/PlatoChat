@@ -229,7 +229,7 @@ export const ModelSelector: React.FC<Props> = ({
             })}
 
             <TouchableOpacity
-              onPress={() => setIsOpen(false)}
+              onPress={closeDropdown}
               style={{
                 marginTop: theme.spacing.md,
                 paddingVertical: theme.spacing.sm,
