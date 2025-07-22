@@ -40,16 +40,6 @@ const getAppScheme = () => {
   return "platochat"
 }
 
-const getUpdateUrl = () => {
-  if (IS_DEV) {
-    return "https://u.expo.dev/9fc16c8d-01c5-4f05-ade8-e7296feb94f2"
-  }
-  if (IS_PREVIEW) {
-    return "https://u.expo.dev/a6fe3120-816c-4d4b-9e6a-f4261d3412c7"
-  }
-  return "https://u.expo.dev/5dbd8fd1-d3e1-41cf-8d69-6d9d57e633fb"
-}
-
 /**
  * @param config ExpoConfig coming from the static config app.json if it exists
  *
@@ -64,13 +54,15 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
     name: getAppName(),
     slug: "PlatoChat",
     scheme: getAppScheme(),
-    version: config.version || "1.0.0",
+    version: "1.0.0",
     orientation: "portrait",
     userInterfaceStyle: "automatic",
     icon: "./assets/images/app-icon-all.png",
     updates: {
-      fallbackToCacheTimeout: 0,
-      url: getUpdateUrl(),
+      url: "https://u.expo.dev/0a5ec96e-6e3e-4d44-a355-f825a2debc4a",
+    },
+    runtimeVersion: {
+      policy: "appVersion",
     },
     newArchEnabled: true,
     jsEngine: "hermes",

@@ -12,6 +12,7 @@ import type * as chat from "../chat.js";
 import type * as cleanup from "../cleanup.js";
 import type * as cleanupImpl from "../cleanupImpl.js";
 import type * as limiter from "../limiter.js";
+import type * as models from "../models.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   cleanup: typeof cleanup;
   cleanupImpl: typeof cleanupImpl;
   limiter: typeof limiter;
+  models: typeof models;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
