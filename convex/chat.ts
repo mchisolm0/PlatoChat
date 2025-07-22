@@ -241,7 +241,7 @@ export const sendMessageToAgentAnonymous = action({
     })
     const result = await thread.streamText(
       { prompt: args.prompt },
-      { saveStreamDeltas: { chunking: "line" } },
+      { saveStreamDeltas: { chunking: "word" } },
     )
 
     await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
