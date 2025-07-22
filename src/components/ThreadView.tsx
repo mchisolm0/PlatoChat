@@ -58,7 +58,6 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
       <MessageList threadId={threadId} />
       {isLoading && <Text>Loading...</Text>}
       <View style={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing.md }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}></View>
         <TextField
           value={message}
           editable={!isLoading}
