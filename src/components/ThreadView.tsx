@@ -119,7 +119,6 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
                 setMessage("")
               } catch (error) {
                 console.error(error)
-                // Show user-friendly error message for rate limits
                 if (error instanceof Error && error.message.includes("rate limit")) {
                   alert(error.message)
                 }
