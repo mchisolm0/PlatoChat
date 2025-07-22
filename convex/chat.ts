@@ -19,7 +19,7 @@ for (const model of ALL_MODELS) {
   chatAgents.set(
     model.id,
     new Agent(components.agent, {
-      name: `chat-agent-${model.provider}`,
+      name: `chat-agent-${model.id}`,
       chat: openrouter.chat(model.id),
       instructions: "You are a helpful assistant. Be concise and friendly in your responses.",
       maxSteps: 10,
