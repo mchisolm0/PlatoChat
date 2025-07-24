@@ -4,7 +4,8 @@ import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
 
 import { components } from "./_generated/api"
-import { mutation, action, query, ActionCtx } from "./_generated/server"
+import { internal } from "./_generated/api"
+import { mutation, query, ActionCtx, internalAction } from "./_generated/server"
 import { rateLimiter } from "./limiter"
 import {
   DEFAULT_MODEL_ID,
@@ -45,37 +46,52 @@ function getChatAgent(modelId: string, isAnonymous: boolean = false): Agent<any>
   return agent
 }
 
+function getEffectiveUserId(userId: any, anonymousUserId?: string): string {
+  if (userId?.tokenIdentifier) {
+    return userId.tokenIdentifier
+  }
+  if (anonymousUserId) {
+    return anonymousUserId
+  }
+  throw new Error("Must be signed in or provide anonymous user ID")
+}
+
+function isAnonymousUser(effectiveUserId: string): boolean {
+  return effectiveUserId.startsWith("anon_")
+}
+
 export const createThread = mutation({
   args: {
     modelId: v.optional(v.string()),
+    anonymousUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
-    console.log(
-      "createThread - userId:",
-      userId ? "exists" : "null",
-      userId?.tokenIdentifier ? `token: ${userId.tokenIdentifier.slice(0, 20)}...` : "no token",
-    )
-    if (!userId) {
-      console.log("Unauthorized. Please sign in.")
-      throw new Error("Unauthorized. Please sign in.")
-    } else if (!userId?.tokenIdentifier) {
-      console.log("Something is wrong with your sign in. Please contact support.")
-      throw new Error("Something is wrong with your sign in. Please contact support.")
-    }
+    const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
+    const isAnonymous = isAnonymousUser(effectiveUserId)
 
-    const { ok, retryAfter } = await rateLimiter.limit(ctx, "createThread", {
-      key: userId.tokenIdentifier,
+    console.log(
+      "createThread - effectiveUserId:",
+      effectiveUserId ? effectiveUserId.slice(0, 20) + "..." : "null",
+      "isAnonymous:",
+      isAnonymous,
+    )
+
+    const rateLimitConfig = isAnonymous ? "anonymousThreads" : "createThread"
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, rateLimitConfig, {
+      key: effectiveUserId,
     })
     if (!ok) {
       throw new Error(`Rate limited. Please try again in ${Math.ceil(retryAfter / 1000)} seconds.`)
     }
 
-    const validatedModelId = validateModelId(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId, false)
+    const validatedModelId = isAnonymous
+      ? validateModelIdForAnonymousUser(args.modelId)
+      : validateModelId(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId, isAnonymous)
 
     const { threadId } = await chatAgent.createThread(ctx, {
-      userId: userId?.tokenIdentifier,
+      userId: effectiveUserId,
     })
     return threadId
   },
@@ -112,151 +128,121 @@ async function generateThreadTitle(
   }
 }
 
-export const sendMessageToAgent = action({
+export const sendMessage = mutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
     modelId: v.optional(v.string()),
+    anonymousUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
+    const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
+    const isAnonymous = isAnonymousUser(effectiveUserId)
+
     console.log(
-      "sendMessageToAgent - userId:",
-      userId ? "exists" : "null",
-      userId?.tokenIdentifier ? `token: ${userId.tokenIdentifier.slice(0, 20)}...` : "no token",
-    )
-    if (!userId) {
-      console.log("Unauthorized. Please sign in.")
-      throw new Error("Unauthorized. Please sign in.")
-    } else if (!userId?.tokenIdentifier) {
-      console.log("Something is wrong with your sign in. Please contact support.")
-      throw new Error("Something is wrong with your sign in. Please contact support.")
-    }
-
-    const { ok, retryAfter } = await rateLimiter.limit(ctx, "sendMessage", {
-      key: userId.tokenIdentifier,
-    })
-    if (!ok) {
-      throw new Error(
-        `Rate limited. Please wait ${Math.ceil(retryAfter / 1000)} seconds before sending another message.`,
-      )
-    }
-
-    const aiRequestLimit = await rateLimiter.limit(ctx, "aiRequests", {
-      key: userId.tokenIdentifier,
-    })
-    if (!aiRequestLimit.ok) {
-      throw new Error(
-        `AI request rate limit exceeded. Please try again in ${Math.ceil(aiRequestLimit.retryAfter / 1000)} seconds.`,
-      )
-    }
-    const validatedModelId = validateModelId(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId, false)
-
-    const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
-      threadId: args.threadId,
-      order: "asc",
-      excludeToolMessages: true,
-      paginationOpts: { cursor: null, numItems: 10 },
-    })
-
-    if (messages.page.length > 0 && userId?.tokenIdentifier !== messages.page[0]?.userId) {
-      console.log("Unauthorized. Please sign in.")
-      throw new Error("Unauthorized. Please sign in.")
-    }
-
-    const { thread } = await chatAgent.continueThread(ctx, {
-      threadId: args.threadId,
-    })
-    const result = await thread.streamText(
-      { prompt: args.prompt },
-      { saveStreamDeltas: { chunking: "word" } },
+      "sendMessage - effectiveUserId:",
+      effectiveUserId ? effectiveUserId.slice(0, 20) + "..." : "null",
+      "isAnonymous:",
+      isAnonymous,
     )
 
-    await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
-
-    return result.consumeStream()
-  },
-})
-
-export const createThreadAnonymous = mutation({
-  args: {
-    anonymousUserId: v.string(),
-    modelId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { ok, retryAfter } = await rateLimiter.limit(ctx, "anonymousThreads", {
-      key: args.anonymousUserId,
-    })
-    if (!ok) {
+    const sendRateLimitConfig = isAnonymous ? "anonymousMessages" : "sendMessage"
+    const { ok: sendOk, retryAfter: sendRetryAfter } = await rateLimiter.limit(
+      ctx,
+      sendRateLimitConfig,
+      {
+        key: effectiveUserId,
+      },
+    )
+    if (!sendOk) {
       throw new Error(
-        `Anonymous user limit reached. Try again in ${Math.ceil(retryAfter / (1000 * 60 * 60))} hours. If you sign in, you can create more threads and send more messages.`,
+        `Rate limited. Please try again in ${Math.ceil(sendRetryAfter / 1000)} seconds.`,
       )
     }
 
-    const validatedModelId = validateModelIdForAnonymousUser(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId, true)
-
-    const { threadId } = await chatAgent.createThread(ctx, {
-      userId: args.anonymousUserId,
+    const aiRateLimitConfig = isAnonymous ? "anonymousAiRequests" : "aiRequests"
+    const { ok: aiOk, retryAfter: aiRetryAfter } = await rateLimiter.limit(ctx, aiRateLimitConfig, {
+      key: effectiveUserId,
     })
-    return threadId
-  },
-})
-
-export const sendMessageToAgentAnonymous = action({
-  args: {
-    threadId: v.string(),
-    prompt: v.string(),
-    anonymousUserId: v.string(),
-    modelId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { ok, retryAfter } = await rateLimiter.limit(ctx, "anonymousMessages", {
-      key: args.anonymousUserId,
-    })
-    if (!ok) {
-      const hoursLeft = Math.ceil(retryAfter / (1000 * 60 * 60))
+    if (!aiOk) {
       throw new Error(
-        `Daily message limit reached. Try again in ${hoursLeft} hours or sign in to increase how many messages you can send.`,
+        `AI rate limited. Please try again in ${Math.ceil(aiRetryAfter / 1000)} seconds.`,
       )
     }
 
-    const aiRequestLimit = await rateLimiter.limit(ctx, "anonymousAiRequests", {
-      key: args.anonymousUserId,
-    })
-    if (!aiRequestLimit.ok) {
-      const hoursLeft = Math.ceil(aiRequestLimit.retryAfter / (1000 * 60 * 60))
-      throw new Error(
-        `Daily AI request limit reached. Try again in ${hoursLeft} hours or sign in to increase how many AI requests you can make.`,
-      )
-    }
+    const validatedModelId = isAnonymous
+      ? validateModelIdForAnonymousUser(args.modelId)
+      : validateModelId(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId, isAnonymous)
 
-    const validatedModelId = validateModelIdForAnonymousUser(args.modelId)
-    const chatAgent = getChatAgent(validatedModelId, true)
-
-    const messages = await ctx.runQuery(components.agent.messages.listMessagesByThreadId, {
+    const messages = await chatAgent.listMessages(ctx, {
       threadId: args.threadId,
-      order: "asc",
+      paginationOpts: { numItems: 1, cursor: null },
       excludeToolMessages: true,
-      paginationOpts: { cursor: null, numItems: 10 },
     })
 
-    if (messages.page.length > 0 && args.anonymousUserId !== messages.page[0]?.userId) {
+    if (messages.page.length > 0 && effectiveUserId !== messages.page[0]?.userId) {
       throw new Error("Unauthorized access to thread")
     }
 
-    const { thread } = await chatAgent.continueThread(ctx, {
+    const messageResult = await chatAgent.saveMessage(ctx, {
       threadId: args.threadId,
+      message: {
+        role: "user",
+        content: args.prompt,
+      },
     })
-    const result = await thread.streamText(
-      { prompt: args.prompt },
-      { saveStreamDeltas: { chunking: "word" } },
-    )
 
-    await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
+    await ctx.scheduler.runAfter(0, internal.chat.generateResponseAsync, {
+      threadId: args.threadId,
+      promptMessageId: messageResult.messageId,
+      modelId: validatedModelId,
+      effectiveUserId,
+      isAnonymous,
+      prompt: args.prompt,
+    })
 
-    return result.consumeStream()
+    return messageResult.messageId
+  },
+})
+
+export const generateResponseAsync = internalAction({
+  args: {
+    threadId: v.string(),
+    promptMessageId: v.string(),
+    modelId: v.string(),
+    effectiveUserId: v.string(),
+    isAnonymous: v.boolean(),
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const chatAgent = getChatAgent(args.modelId, args.isAnonymous)
+
+      const { thread } = await chatAgent.continueThread(ctx, {
+        threadId: args.threadId,
+      })
+
+      await thread.streamText(
+        {
+          promptMessageId: args.promptMessageId,
+        },
+        {
+          saveStreamDeltas: true,
+        },
+      )
+
+      const messages = await chatAgent.listMessages(ctx, {
+        threadId: args.threadId,
+        paginationOpts: { numItems: 20, cursor: null },
+        excludeToolMessages: true,
+      })
+
+      await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
+    } catch (error) {
+      console.error("Error generating AI response:", error)
+    }
   },
 })
 
@@ -265,56 +251,21 @@ export const listThreadMessages = query({
     threadId: v.string(),
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
+    anonymousUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
-    if (!userId) {
-      console.log("Unauthorized. Please sign in.")
-      throw new Error("Unauthorized. Please sign in.")
-    } else if (!userId?.tokenIdentifier) {
-      console.log("Something is wrong with your sign in. Please contact support.")
-      throw new Error("Something is wrong with your sign in. Please contact support.")
-    }
-    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID, false)
+    const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
+    const isAnonymous = isAnonymousUser(effectiveUserId)
+
+    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID, isAnonymous)
     const paginated = await defaultAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
       excludeToolMessages: true,
     })
 
-    if (paginated.page.length > 0 && userId?.tokenIdentifier !== paginated.page[0]?.userId) {
-      console.log("Unauthorized. Please sign in.")
-      throw new Error("Unauthorized. Please sign in.")
-    }
-
-    const streams = await defaultAgent.syncStreams(ctx, {
-      threadId: args.threadId,
-      streamArgs: args.streamArgs,
-    })
-
-    return {
-      ...paginated,
-      streams,
-    }
-  },
-})
-
-export const listThreadMessagesAnonymous = query({
-  args: {
-    threadId: v.string(),
-    anonymousUserId: v.string(),
-    paginationOpts: paginationOptsValidator,
-    streamArgs: vStreamArgs,
-  },
-  handler: async (ctx, args) => {
-    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID, false)
-    const paginated = await defaultAgent.listMessages(ctx, {
-      threadId: args.threadId,
-      paginationOpts: args.paginationOpts,
-      excludeToolMessages: true,
-    })
-
-    if (paginated.page.length > 0 && args.anonymousUserId !== paginated.page[0]?.userId) {
+    if (paginated.page.length > 0 && effectiveUserId !== paginated.page[0]?.userId) {
       throw new Error("Unauthorized access to thread")
     }
 
@@ -330,59 +281,33 @@ export const listThreadMessagesAnonymous = query({
   },
 })
 
-export const listUserThreadsAnonymous = query({
-  args: {
-    anonymousUserId: v.string(),
-    paginationOpts: paginationOptsValidator,
-    query: v.optional(v.string()),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    if (args.query && args.query.trim() !== "") {
-      return await ctx.runQuery(components.agent.threads.searchThreadTitles, {
-        query: args.query,
-        userId: args.anonymousUserId,
-        limit: args.limit ?? 10,
-      })
-    }
-    const paginated = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
-      userId: args.anonymousUserId,
-      order: "desc",
-      paginationOpts: args.paginationOpts,
-    })
-    return paginated.page
-  },
-})
-
 export const listUserThreads = query({
   args: {
     paginationOpts: paginationOptsValidator,
     query: v.optional(v.string()),
     limit: v.optional(v.number()),
+    anonymousUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
+    const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
+
     console.log(
-      "listUserThreads - userId:",
-      userId ? "exists" : "null",
-      userId?.tokenIdentifier ? `token: ${userId.tokenIdentifier.slice(0, 20)}...` : "no token",
+      "listUserThreads - effectiveUserId:",
+      effectiveUserId ? effectiveUserId.slice(0, 20) + "..." : "null",
+      "isAnonymous:",
+      isAnonymousUser(effectiveUserId),
     )
-    if (!userId) {
-      console.log("Unauthorized. Please sign in.")
-      throw new Error("Unauthorized. Please sign in.")
-    } else if (!userId?.tokenIdentifier) {
-      console.log("Something is wrong with your sign in. Please contact support.")
-      throw new Error("Something is wrong with your sign in. Please contact support.")
-    }
+
     if (args.query && args.query.trim() !== "") {
       return await ctx.runQuery(components.agent.threads.searchThreadTitles, {
         query: args.query,
-        userId: userId?.tokenIdentifier,
+        userId: effectiveUserId,
         limit: args.limit ?? 10,
       })
     }
     const paginated = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
-      userId: userId?.tokenIdentifier,
+      userId: effectiveUserId,
       order: "desc",
       paginationOpts: args.paginationOpts,
     })
