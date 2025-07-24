@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { View } from "react-native"
 import { useUser } from "@clerk/clerk-expo"
-import { useAction } from "convex/react"
+import { useMutation } from "convex/react"
 
 import { api } from "convex/_generated/api"
 
@@ -30,8 +30,7 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
   const [selectedModelId, setSelectedModelId] = useState<string>(getUserModelPreference())
   const { user } = useUser()
 
-  const sendMessageToAgent = useAction(api.chat.sendMessageToAgent)
-  const sendMessageToAgentAnonymous = useAction(api.chat.sendMessageToAgentAnonymous)
+  const sendMessage = useMutation(api.chat.sendMessage)
 
   const isAuthenticated = !!user
 
@@ -67,21 +66,16 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
             if (!message.trim()) return
             setIsLoading(true)
             try {
-              if (isAuthenticated) {
-                await sendMessageToAgent({ threadId, prompt: message, modelId: selectedModelId })
-              } else {
-                const anonymousUserId = getAnonymousUserId()
-                await sendMessageToAgentAnonymous({
-                  threadId,
-                  prompt: message,
-                  anonymousUserId,
-                  modelId: selectedModelId,
-                })
-              }
+              const anonymousUserId = isAuthenticated ? undefined : getAnonymousUserId()
+              await sendMessage({
+                threadId,
+                prompt: message,
+                modelId: selectedModelId,
+                anonymousUserId,
+              })
               setMessage("")
             } catch (error) {
               console.error(error)
-              // Show user-friendly error message for rate limits
               if (error instanceof Error && error.message.includes("rate limit")) {
                 alert(error.message)
               }
@@ -105,17 +99,13 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
               if (!message.trim()) return
               setIsLoading(true)
               try {
-                if (isAuthenticated) {
-                  await sendMessageToAgent({ threadId, prompt: message, modelId: selectedModelId })
-                } else {
-                  const anonymousUserId = getAnonymousUserId()
-                  await sendMessageToAgentAnonymous({
-                    threadId,
-                    prompt: message,
-                    anonymousUserId,
-                    modelId: selectedModelId,
-                  })
-                }
+                const anonymousUserId = isAuthenticated ? undefined : getAnonymousUserId()
+                await sendMessage({
+                  threadId,
+                  prompt: message,
+                  modelId: selectedModelId,
+                  anonymousUserId,
+                })
                 setMessage("")
               } catch (error) {
                 console.error(error)

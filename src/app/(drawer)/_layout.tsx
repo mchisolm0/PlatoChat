@@ -1,6 +1,5 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "expo-router"
-import * as Sentry from "@sentry/react-native"
 import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
 
@@ -16,16 +15,9 @@ export default function Layout() {
   const { theme } = useAppTheme()
   const { isAuthenticated } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
-  const createThreadAnonymous = useMutation(api.chat.createThreadAnonymous)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const [anonymousUserId, setAnonymousUserId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const id = getAnonymousUserId()
-    setAnonymousUserId(id)
-  }, [])
-  const authenticatedThreads = useQuery(
+  const userThreads = useQuery(
     api.chat.listUserThreads,
     isAuthenticated
       ? {
@@ -36,19 +28,6 @@ export default function Layout() {
       : "skip",
   )
 
-  const anonymousThreads = useQuery(
-    api.chat.listUserThreadsAnonymous,
-    !isAuthenticated && anonymousUserId
-      ? {
-          anonymousUserId,
-          query: searchQuery,
-          limit: 20,
-          paginationOpts: { cursor: null, numItems: 20 },
-        }
-      : "skip",
-  )
-
-  const threads = isAuthenticated ? authenticatedThreads : anonymousThreads
   const router = useRouter()
 
   const handleLogin = () => {
@@ -64,21 +43,11 @@ export default function Layout() {
   )
 
   const handleCreateThreadPress = useCallback(() => {
-    if (isAuthenticated) {
-      createThread().then((threadId) =>
-        router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
-      )
-    } else if (anonymousUserId) {
-      createThreadAnonymous({ anonymousUserId }).then((threadId) =>
-        router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
-      )
-    } else {
-      Sentry.captureException(
-        new Error("Cannot create thread: anonymous user ID not yet initialized"),
-      )
-      console.warn("Cannot create thread: anonymous user ID not yet initialized")
-    }
-  }, [isAuthenticated, createThread, createThreadAnonymous, anonymousUserId, router])
+    const threadArgs = isAuthenticated ? {} : { anonymousUserId: getAnonymousUserId() }
+    createThread(threadArgs).then((threadId) =>
+      router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
+    )
+  }, [createThread, router, isAuthenticated])
 
   return (
     <Drawer
@@ -94,7 +63,7 @@ export default function Layout() {
       drawerContent={(props) => (
         <CustomDrawer
           {...props}
-          chatThreads={threads}
+          chatThreads={userThreads}
           handleThreadPress={handleThreadPress(props.navigation)}
           onLogin={handleLogin}
           onSearchChange={setSearchQuery}
@@ -121,7 +90,7 @@ export default function Layout() {
         name="[threadId]"
         options={({ route }) => {
           const threadId = (route.params as any)?.threadId as string
-          const thread = threads?.find((t: any) => t._id === threadId)
+          const thread = userThreads?.find((t: any) => t._id === threadId)
           return {
             title: thread?.title || "Chat",
             headerRight: () => (
