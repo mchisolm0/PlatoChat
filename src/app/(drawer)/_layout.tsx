@@ -17,13 +17,16 @@ export default function Layout() {
   const createThread = useMutation(api.chat.createThread)
   const [searchQuery, setSearchQuery] = useState("")
 
+  const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : null
+
   const userThreads = useQuery(
     api.chat.listUserThreads,
-    isAuthenticated
+    isAuthenticated || anonymousUserId
       ? {
           query: searchQuery,
           limit: 20,
           paginationOpts: { cursor: null, numItems: 20 },
+          ...(anonymousUserId && { anonymousUserId }),
         }
       : "skip",
   )
