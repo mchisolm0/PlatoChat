@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
+import { ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
-import * as Sentry from "@sentry/react-native"
 import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
 
@@ -11,44 +11,53 @@ import { PressableIcon } from "@/components/Icon"
 import { useAppTheme } from "@/theme/context"
 import { spacing } from "@/theme/spacing"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { reportCrash, ErrorType } from "@/utils/crashReporting"
+
+interface CreateThreadIconProps {
+  isCreatingThread: boolean
+  color: string
+  onPress: () => void
+}
+
+const CreateThreadIcon: React.FC<CreateThreadIconProps> = ({
+  isCreatingThread,
+  color,
+  onPress,
+}) => {
+  return isCreatingThread ? (
+    <ActivityIndicator size="small" color={color} style={{ marginRight: spacing.md }} />
+  ) : (
+    <PressableIcon
+      icon="plus"
+      size={spacing.lg}
+      color={color}
+      style={{ marginRight: spacing.md }}
+      onPress={onPress}
+    />
+  )
+}
 
 export default function Layout() {
   const { theme } = useAppTheme()
   const { isAuthenticated } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
-  const createThreadAnonymous = useMutation(api.chat.createThreadAnonymous)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isCreatingThread, setIsCreatingThread] = useState(false)
 
-  const [anonymousUserId, setAnonymousUserId] = useState<string | null>(null)
+  const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : undefined
 
-  useEffect(() => {
-    const id = getAnonymousUserId()
-    setAnonymousUserId(id)
-  }, [])
-  const authenticatedThreads = useQuery(
+  const userThreads = useQuery(
     api.chat.listUserThreads,
-    isAuthenticated
+    isAuthenticated || anonymousUserId
       ? {
           query: searchQuery,
           limit: 20,
           paginationOpts: { cursor: null, numItems: 20 },
+          ...(anonymousUserId && { anonymousUserId }),
         }
       : "skip",
   )
 
-  const anonymousThreads = useQuery(
-    api.chat.listUserThreadsAnonymous,
-    !isAuthenticated && anonymousUserId
-      ? {
-          anonymousUserId,
-          query: searchQuery,
-          limit: 20,
-          paginationOpts: { cursor: null, numItems: 20 },
-        }
-      : "skip",
-  )
-
-  const threads = isAuthenticated ? authenticatedThreads : anonymousThreads
   const router = useRouter()
 
   const handleLogin = () => {
@@ -63,22 +72,23 @@ export default function Layout() {
     [router],
   )
 
-  const handleCreateThreadPress = useCallback(() => {
-    if (isAuthenticated) {
-      createThread().then((threadId) =>
-        router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
-      )
-    } else if (anonymousUserId) {
-      createThreadAnonymous({ anonymousUserId }).then((threadId) =>
-        router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
-      )
-    } else {
-      Sentry.captureException(
-        new Error("Cannot create thread: anonymous user ID not yet initialized"),
-      )
-      console.warn("Cannot create thread: anonymous user ID not yet initialized")
+  const handleCreateThreadPress = useCallback(async () => {
+    if (isCreatingThread) return
+
+    setIsCreatingThread(true)
+
+    try {
+      const threadArgs = isAuthenticated ? {} : { anonymousUserId }
+      const threadId = await createThread(threadArgs)
+
+      router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } })
+    } catch (error) {
+      console.error("Failed to create thread:", error)
+      reportCrash(error as Error, ErrorType.HANDLED)
+    } finally {
+      setIsCreatingThread(false)
     }
-  }, [isAuthenticated, createThread, createThreadAnonymous, anonymousUserId, router])
+  }, [isCreatingThread, isAuthenticated, anonymousUserId, createThread, router])
 
   return (
     <Drawer
@@ -87,6 +97,13 @@ export default function Layout() {
         headerStyle: {
           backgroundColor: theme.colors.background,
         },
+        headerRight: () => (
+          <CreateThreadIcon
+            isCreatingThread={isCreatingThread}
+            color={theme.colors.palette.primary500}
+            onPress={handleCreateThreadPress}
+          />
+        ),
         headerTitleStyle: {
           color: theme.colors.text,
         },
@@ -94,7 +111,7 @@ export default function Layout() {
       drawerContent={(props) => (
         <CustomDrawer
           {...props}
-          chatThreads={threads}
+          chatThreads={userThreads}
           handleThreadPress={handleThreadPress(props.navigation)}
           onLogin={handleLogin}
           onSearchChange={setSearchQuery}
@@ -106,33 +123,15 @@ export default function Layout() {
         name="index"
         options={{
           title: "New Chat",
-          headerRight: () => (
-            <PressableIcon
-              icon="plus"
-              size={spacing.lg}
-              color={theme.colors.palette.primary500}
-              style={{ marginRight: spacing.md }}
-              onPress={handleCreateThreadPress}
-            />
-          ),
         }}
       />
       <Drawer.Screen
         name="[threadId]"
         options={({ route }) => {
           const threadId = (route.params as any)?.threadId as string
-          const thread = threads?.find((t: any) => t._id === threadId)
+          const thread = userThreads?.find((t: any) => t._id === threadId)
           return {
             title: thread?.title || "Chat",
-            headerRight: () => (
-              <PressableIcon
-                icon="plus"
-                size={spacing.lg}
-                color={theme.colors.palette.primary500}
-                style={{ marginRight: spacing.md }}
-                onPress={handleCreateThreadPress}
-              />
-            ),
           }
         }}
       />

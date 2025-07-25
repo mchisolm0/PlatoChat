@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View, ViewStyle } from "react-native"
 import { useRouter } from "expo-router"
-import { useThreadMessages } from "@convex-dev/agent/react"
+import { useThreadMessages, toUIMessages, useSmoothText } from "@convex-dev/agent/react"
 import { useConvexAuth } from "convex/react"
 
 import { api } from "convex/_generated/api"
@@ -77,21 +77,23 @@ interface Props {
   pageSize?: number
 }
 
-const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
-  const role = response.role || response.message?.role || "assistant"
-  let contentText = ""
-  const content = response.message?.content || response.text
-
+const MessageItem: React.FC<{ response: any }> = ({ response }) => {
   const { theme } = useAppTheme()
 
-  if (Array.isArray(content)) {
-    contentText = content
-      .filter((part) => part.type === "text" && part.text)
-      .map((part) => part.text || "")
+  const role = response.role || "assistant"
+
+  let contentText = ""
+
+  if (response.content && typeof response.content === "string") {
+    contentText = response.content
+  } else if (response.parts && Array.isArray(response.parts)) {
+    contentText = response.parts
+      .filter((part: any) => part.type === "text" && part.text)
+      .map((part: any) => part.text)
       .join("\n")
-  } else if (typeof content === "string") {
-    contentText = content
   }
+
+  const [visibleText] = useSmoothText(contentText)
 
   const isUser = role === "user"
   const $baseStyle: ViewStyle = {
@@ -115,7 +117,7 @@ const MessageItem: React.FC<{ response: Response }> = ({ response }) => {
   return (
     <Card
       heading={role.charAt(0).toUpperCase() + role.slice(1)}
-      content={contentText || "(No content)"}
+      content={visibleText || "(No content)"}
       style={$messageStyle}
     />
   )
@@ -127,39 +129,21 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   const scrollViewRef = useRef<ScrollView>(null)
   const { isAuthenticated } = useConvexAuth()
   const router = useRouter()
+  const { theme } = useAppTheme()
 
   const isValidThreadId = threadId && threadId !== "chat" && threadId.length >= 10
 
-  // Use retryCount as dependency to force re-evaluation of anonymous ID
   const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : null
-  // retryCount is used to trigger re-renders when user clicks "Try Again"
   const _retryTrigger = retryCount
 
-  const {
-    results: authenticatedMessages,
-    status: authenticatedStatus,
-    loadMore: authenticatedLoadMore,
-  } = useThreadMessages(
+  const { results, status, loadMore } = useThreadMessages(
     api.chat.listThreadMessages,
-    isValidThreadId && isAuthenticated ? { threadId: threadId as any } : "skip",
+    {
+      threadId,
+      anonymousUserId: anonymousUserId || undefined,
+    },
     { initialNumItems: pageSize, stream: true },
   )
-
-  const {
-    results: anonymousMessages,
-    status: anonymousStatus,
-    loadMore: anonymousLoadMore,
-  } = useThreadMessages(
-    api.chat.listThreadMessagesAnonymous,
-    isValidThreadId && !isAuthenticated && anonymousUserId
-      ? { threadId: threadId as any, anonymousUserId }
-      : "skip",
-    { initialNumItems: pageSize, stream: true },
-  )
-
-  const messagesResult = isAuthenticated ? authenticatedMessages : anonymousMessages
-  const status = isAuthenticated ? authenticatedStatus : anonymousStatus
-  const loadMore = isAuthenticated ? authenticatedLoadMore : anonymousLoadMore
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -190,7 +174,6 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   if (!isAuthenticated && !anonymousUserId) {
     const handleRetry = () => {
       setRetryCount((prev) => prev + 1)
-      // Force re-render to try getting anonymous ID again
     }
 
     const handleSignIn = () => {
@@ -199,12 +182,12 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
     return (
       <View
-        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: spacing.lg }}
+        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: theme.spacing.lg }}
       >
-        <Text style={{ textAlign: "center", marginBottom: spacing.md }}>
+        <Text style={{ textAlign: "center", marginBottom: theme.spacing.md }}>
           Unable to load messages. Please try again or sign in for the best experience.
         </Text>
-        <View style={{ flexDirection: "row", gap: spacing.md }}>
+        <View style={{ flexDirection: "row", gap: theme.spacing.md }}>
           <Button text="Try Again" onPress={handleRetry} />
           <Button text="Sign In" onPress={handleSignIn} />
         </View>
@@ -212,7 +195,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
     )
   }
 
-  const serverMessages = messagesResult || []
+  const serverMessages = results || []
 
   if (serverMessages.length === 0) {
     return (
@@ -224,8 +207,8 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
   return (
     <ScrollView ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={400}>
-      {serverMessages.map((item, index) => (
-        <MessageItem key={item._id ?? item.id ?? index} response={item} />
+      {toUIMessages(serverMessages).map((item) => (
+        <MessageItem key={item.key} response={item} />
       ))}
     </ScrollView>
   )

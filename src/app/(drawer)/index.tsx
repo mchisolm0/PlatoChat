@@ -1,7 +1,13 @@
 import { Image, ImageStyle, TextStyle, View, ViewStyle, Pressable } from "react-native"
 import { useRouter } from "expo-router"
 import { useUser } from "@clerk/clerk-expo"
-import { Authenticated, Unauthenticated, AuthLoading, useMutation } from "convex/react"
+import {
+  Authenticated,
+  Unauthenticated,
+  AuthLoading,
+  useMutation,
+  useConvexAuth,
+} from "convex/react"
 
 import { api } from "convex/_generated/api"
 
@@ -21,19 +27,13 @@ const welcomeFace = require("@assets/images/welcome-face.png")
 export default function WelcomeScreen() {
   const { themed, theme } = useAppTheme()
   const { user } = useUser()
+  const { isAuthenticated } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
-  const createThreadAnonymous = useMutation(api.chat.createThreadAnonymous)
   const router = useRouter()
 
   const handleNewChat = () => {
-    createThread().then((threadId) =>
-      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
-    )
-  }
-
-  const handleNewChatAnonymous = () => {
-    const anonymousUserId = getAnonymousUserId()
-    createThreadAnonymous({ anonymousUserId }).then((threadId) =>
+    const threadArgs = isAuthenticated ? {} : { anonymousUserId: getAnonymousUserId() }
+    createThread(threadArgs).then((threadId) =>
       router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
     )
   }
@@ -70,7 +70,7 @@ export default function WelcomeScreen() {
           <Text preset="subheading" text="Try PlatoChat" style={themed($anonymousHeading)} />
           <Button
             text="Start Anonymous Chat (5 messages/day)"
-            onPress={handleNewChatAnonymous}
+            onPress={handleNewChat}
             style={themed($anonymousButton)}
           />
           <Text
