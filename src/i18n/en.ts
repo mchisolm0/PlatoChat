@@ -18,7 +18,7 @@ const en = {
     email: "Email",
     emailPlaceholder: "Insert email",
     verifyEmail: "Verify email",
-    verifyEmailPlaceholder: "Insert verification code",
+    verifyEmailPlaceholder: "Enter verification code here",
     verifyEmailCode: "Submit verification code",
     password: "Password",
     passwordPlaceholder: "Insert password",

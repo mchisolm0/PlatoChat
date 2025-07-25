@@ -77,15 +77,16 @@ export default function SignUpScreen() {
 
   if (pendingVerification) {
     return (
-      <>
-        <Text tx="auth:verifyEmail" />
+      <Screen preset="fixed" contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.lg }}>
+        <Text preset="heading" tx="auth:verifyEmail" />
         <TextField
           value={code}
-          placeholderTx="auth:verifyEmailCode"
+          placeholderTx="auth:verifyEmailPlaceholder"
           onChangeText={(code: string) => setCode(code)}
+          inputWrapperStyle={{ width: "100%" }}
         />
-        <Button tx="auth:verifyEmailCode" onPress={onVerifyPress} />
-      </>
+        <Button tx="auth:verifyEmailCode" onPress={onVerifyPress} style={{ width: "100%" }} />
+      </Screen>
     )
   }
 
