@@ -1,4 +1,4 @@
-import { Agent, vStreamArgs } from "@convex-dev/agent"
+import { Agent, vStreamArgs, saveMessage, listMessages, syncStreams } from "@convex-dev/agent"
 import { openrouter } from "@openrouter/ai-sdk-provider"
 import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
@@ -103,28 +103,40 @@ async function generateThreadTitle(
   prompt: string,
   messages: any,
 ) {
-  if (messages.page.length === 0 || messages.page.length === 4) {
-    const { generateText } = await import("ai")
+  const messageCount = messages.page.length
 
-    let conversationContent = ""
-    if (messages.page.length === 0) {
-      conversationContent = prompt
-    } else {
-      const messageTexts = messages.page
+  const shouldGenerateTitle = (() => {
+    if (messageCount === 2) return true
+    const titleGenerationPoints = [2, 6, 14, 30, 62, 126, 254]
+    return titleGenerationPoints.includes(messageCount)
+  })()
+
+  if (shouldGenerateTitle) {
+    try {
+      const { generateText } = await import("ai")
+
+      const maxMessagesForTitle = Math.min(messageCount, 10)
+      const recentMessages = messages.page.slice(-maxMessagesForTitle)
+
+      const messageTexts = recentMessages
         .map((msg: any) => msg.text || "")
         .filter((text: string) => text.length > 0)
-      conversationContent = [...messageTexts, prompt].join("\n")
+
+      const conversationContent = [...messageTexts, prompt].join("\n")
+
+      const titleResult = await generateText({
+        model: openrouter(DEFAULT_MODEL_ID),
+        prompt: `Based on this conversation content, suggest a concise title (max 50 characters): ${conversationContent}\nTitle:`,
+      })
+
+      await ctx.runMutation(components.agent.threads.updateThread, {
+        threadId: threadId,
+        patch: { title: titleResult.text.trim() },
+      })
+    } catch (error) {
+      console.error("Error in generateThreadTitle:", error)
+      throw error
     }
-
-    const titleResult = await generateText({
-      model: openrouter(DEFAULT_MODEL_ID),
-      prompt: `Based on this conversation content, suggest a concise title (max 50 characters): ${conversationContent}\nTitle:`,
-    })
-
-    await ctx.runMutation(components.agent.threads.updateThread, {
-      threadId: threadId,
-      patch: { title: titleResult.text.trim() },
-    })
   }
 }
 
@@ -186,28 +198,24 @@ export const sendMessage = mutation({
       throw new Error("Unauthorized access to thread")
     }
 
-    const messageResult = await chatAgent.saveMessage(ctx, {
+    const { messageId } = await saveMessage(ctx, components.agent, {
       threadId: args.threadId,
-      message: {
-        role: "user",
-        content: args.prompt,
-      },
+      userId: effectiveUserId,
+      prompt: args.prompt,
     })
 
-    await ctx.scheduler.runAfter(0, internal.chat.generateResponseAsync, {
+    await ctx.scheduler.runAfter(0, internal.chat.streamResponseAsync, {
       threadId: args.threadId,
-      promptMessageId: messageResult.messageId,
+      promptMessageId: messageId,
       modelId: validatedModelId,
       effectiveUserId,
       isAnonymous,
       prompt: args.prompt,
     })
-
-    return messageResult.messageId
   },
 })
 
-export const generateResponseAsync = internalAction({
+export const streamResponseAsync = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
@@ -220,18 +228,17 @@ export const generateResponseAsync = internalAction({
     try {
       const chatAgent = getChatAgent(args.modelId, args.isAnonymous)
 
-      const { thread } = await chatAgent.continueThread(ctx, {
-        threadId: args.threadId,
-      })
-
-      await thread.streamText(
-        {
-          promptMessageId: args.promptMessageId,
-        },
+      const result = await chatAgent.streamText(
+        ctx,
+        { threadId: args.threadId },
+        { promptMessageId: args.promptMessageId },
         {
           saveStreamDeltas: true,
         },
       )
+
+      await result.consumeStream()
+      console.log("streamText completed")
 
       const messages = await chatAgent.listMessages(ctx, {
         threadId: args.threadId,
@@ -239,9 +246,14 @@ export const generateResponseAsync = internalAction({
         excludeToolMessages: true,
       })
 
-      await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
+      try {
+        await generateThreadTitle(ctx, args.threadId, args.prompt, messages)
+      } catch (titleError) {
+        console.error("Error generating thread title:", titleError)
+      }
     } catch (error) {
       console.error("Error generating AI response:", error)
+      throw error
     }
   },
 })
@@ -256,10 +268,8 @@ export const listThreadMessages = query({
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity()
     const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
-    const isAnonymous = isAnonymousUser(effectiveUserId)
 
-    const defaultAgent = getChatAgent(DEFAULT_MODEL_ID, isAnonymous)
-    const paginated = await defaultAgent.listMessages(ctx, {
+    const paginated = await listMessages(ctx, components.agent, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts,
       excludeToolMessages: true,
@@ -269,7 +279,7 @@ export const listThreadMessages = query({
       throw new Error("Unauthorized access to thread")
     }
 
-    const streams = await defaultAgent.syncStreams(ctx, {
+    const streams = await syncStreams(ctx, components.agent, {
       threadId: args.threadId,
       streamArgs: args.streamArgs,
     })
@@ -295,8 +305,6 @@ export const listUserThreads = query({
     console.log(
       "listUserThreads - effectiveUserId:",
       effectiveUserId ? effectiveUserId.slice(0, 20) + "..." : "null",
-      "isAnonymous:",
-      isAnonymousUser(effectiveUserId),
     )
 
     if (args.query && args.query.trim() !== "") {
