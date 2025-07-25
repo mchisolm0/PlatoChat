@@ -58,7 +58,6 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
   return (
     <View style={{ flex: 1 }}>
       <MessageList threadId={threadId} />
-      {isLoading && <Text>Loading...</Text>}
       <View style={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing.md }}>
         <TextField
           value={message}

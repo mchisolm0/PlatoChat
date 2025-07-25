@@ -66,6 +66,19 @@ type AssistantMessage = BaseMessage & {
 
 type Response = BaseMessage | AssistantMessage
 
+interface UIMessage {
+  key: string
+  role?: "user" | "assistant" | "system" | "tool" | "data"
+  content?: string | Array<{ text?: string; type: string; [key: string]: any }>
+  parts?: Array<{ text?: string; type: string; [key: string]: any }>
+  _id?: string
+  _creationTime?: number
+  agentName?: string
+  text?: string
+  streaming?: boolean
+  [key: string]: any
+}
+
 interface PaginationOptions {
   cursor?: string | null
   numItems: number
@@ -77,7 +90,7 @@ interface Props {
   pageSize?: number
 }
 
-const MessageItem: React.FC<{ response: any }> = ({ response }) => {
+const MessageItem: React.FC<{ response: UIMessage }> = ({ response }) => {
   const { theme } = useAppTheme()
 
   const role = response.role || "assistant"
@@ -199,8 +212,8 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
   if (serverMessages.length === 0) {
     return (
-      <View style={{ flex: 1 }}>
-        <Text>No messages</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text preset="subheading" tx="chat:noMessages" />
       </View>
     )
   }
