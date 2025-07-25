@@ -35,6 +35,7 @@ const en = {
     user: "Me",
     assistant: "Assistant",
     invalidThreadId: "Invalid thread ID",
+    noMessages: "No messages yet",
   },
   settings: {
     settings: "Settings",
