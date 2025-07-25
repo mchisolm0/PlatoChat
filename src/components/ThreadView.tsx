@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { View } from "react-native"
 import { useUser } from "@clerk/clerk-expo"
+import { optimisticallySendMessage } from "@convex-dev/agent/react"
 import { useMutation } from "convex/react"
 
 import { api } from "convex/_generated/api"
@@ -30,7 +31,9 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
   const [selectedModelId, setSelectedModelId] = useState<string>(getUserModelPreference())
   const { user } = useUser()
 
-  const sendMessage = useMutation(api.chat.sendMessage)
+  const sendMessage = useMutation(api.chat.sendMessage).withOptimisticUpdate(
+    optimisticallySendMessage(api.chat.listThreadMessages),
+  )
 
   const isAuthenticated = !!user
 
