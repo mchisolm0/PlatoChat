@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react"
+import { ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
 import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
@@ -10,14 +11,40 @@ import { PressableIcon } from "@/components/Icon"
 import { useAppTheme } from "@/theme/context"
 import { spacing } from "@/theme/spacing"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { reportCrash, ErrorType } from "@/utils/crashReporting"
+
+interface CreateThreadIconProps {
+  isCreatingThread: boolean
+  color: string
+  onPress: () => void
+}
+
+const CreateThreadIcon: React.FC<CreateThreadIconProps> = ({
+  isCreatingThread,
+  color,
+  onPress,
+}) => {
+  return isCreatingThread ? (
+    <ActivityIndicator size="small" color={color} style={{ marginRight: spacing.md }} />
+  ) : (
+    <PressableIcon
+      icon="plus"
+      size={spacing.lg}
+      color={color}
+      style={{ marginRight: spacing.md }}
+      onPress={onPress}
+    />
+  )
+}
 
 export default function Layout() {
   const { theme } = useAppTheme()
   const { isAuthenticated } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isCreatingThread, setIsCreatingThread] = useState(false)
 
-  const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : null
+  const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : undefined
 
   const userThreads = useQuery(
     api.chat.listUserThreads,
@@ -45,12 +72,23 @@ export default function Layout() {
     [router],
   )
 
-  const handleCreateThreadPress = useCallback(() => {
-    const threadArgs = isAuthenticated ? {} : { anonymousUserId: getAnonymousUserId() }
-    createThread(threadArgs).then((threadId) =>
-      router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
-    )
-  }, [createThread, router, isAuthenticated])
+  const handleCreateThreadPress = useCallback(async () => {
+    if (isCreatingThread) return
+
+    setIsCreatingThread(true)
+
+    try {
+      const threadArgs = isAuthenticated ? {} : { anonymousUserId }
+      const threadId = await createThread(threadArgs)
+
+      router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } })
+    } catch (error) {
+      console.error("Failed to create thread:", error)
+      reportCrash(error as Error, ErrorType.HANDLED)
+    } finally {
+      setIsCreatingThread(false)
+    }
+  }, [isCreatingThread, isAuthenticated, anonymousUserId, createThread, router])
 
   return (
     <Drawer
@@ -59,6 +97,13 @@ export default function Layout() {
         headerStyle: {
           backgroundColor: theme.colors.background,
         },
+        headerRight: () => (
+          <CreateThreadIcon
+            isCreatingThread={isCreatingThread}
+            color={theme.colors.palette.primary500}
+            onPress={handleCreateThreadPress}
+          />
+        ),
         headerTitleStyle: {
           color: theme.colors.text,
         },
@@ -78,15 +123,6 @@ export default function Layout() {
         name="index"
         options={{
           title: "New Chat",
-          headerRight: () => (
-            <PressableIcon
-              icon="plus"
-              size={spacing.lg}
-              color={theme.colors.palette.primary500}
-              style={{ marginRight: spacing.md }}
-              onPress={handleCreateThreadPress}
-            />
-          ),
         }}
       />
       <Drawer.Screen
@@ -96,15 +132,6 @@ export default function Layout() {
           const thread = userThreads?.find((t: any) => t._id === threadId)
           return {
             title: thread?.title || "Chat",
-            headerRight: () => (
-              <PressableIcon
-                icon="plus"
-                size={spacing.lg}
-                color={theme.colors.palette.primary500}
-                style={{ marginRight: spacing.md }}
-                onPress={handleCreateThreadPress}
-              />
-            ),
           }
         }}
       />
