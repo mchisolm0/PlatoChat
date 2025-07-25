@@ -71,7 +71,11 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...config.ios,
       bundleIdentifier: getUniqueIdentifier(),
-      icon: "./assets/images/app-icon-ios.png",
+      icon: {
+        dark: "./assets/images/ios-dark.png",
+        light: "./assets/images/ios-light.png",
+        tinted: "./assets/images/ios-tinted.png",
+      },
       supportsTablet: true,
       privacyManifests: {
         NSPrivacyAccessedAPITypes: [
@@ -91,8 +95,9 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       package: getUniqueIdentifier(),
       icon: "./assets/images/app-icon-android-legacy.png",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/app-icon-android-adaptive-foreground.png",
-        backgroundImage: "./assets/images/app-icon-android-adaptive-background.png",
+        monochromeImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#ffffff",
       },
       allowBackup: false,
       edgeToEdgeEnabled: true,
@@ -112,7 +117,7 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/app-icon-android-adaptive-foreground.png",
+          image: "./assets/images/splash-icon-dark.png",
           imageWidth: 300,
           resizeMode: "contain",
           backgroundColor: "#191015",
