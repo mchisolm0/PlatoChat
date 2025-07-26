@@ -322,3 +322,159 @@ export const listUserThreads = query({
     return paginated.page
   },
 })
+
+export const editMessage = mutation({
+  args: {
+    messageId: v.string(),
+    threadId: v.string(),
+    newText: v.string(),
+    modelId: v.optional(v.string()),
+    anonymousUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity()
+    const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
+    const isAnonymous = isAnonymousUser(effectiveUserId)
+
+    // Rate limiting
+    const rateLimitConfig = isAnonymous ? "anonymousMessages" : "sendMessage"
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, rateLimitConfig, {
+      key: effectiveUserId,
+    })
+    if (!ok) {
+      throw new Error(`Rate limited. Please try again in ${Math.ceil(retryAfter / 1000)} seconds.`)
+    }
+
+    const validatedModelId = isAnonymous
+      ? validateModelIdForAnonymousUser(args.modelId)
+      : validateModelId(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId, isAnonymous)
+
+    // Get the message to edit
+    const messages = await chatAgent.listMessages(ctx, {
+      threadId: args.threadId,
+      paginationOpts: { numItems: 100, cursor: null },
+      excludeToolMessages: true,
+    })
+
+    const messageToEdit = messages.page.find((msg) => msg._id === args.messageId)
+    if (!messageToEdit) {
+      throw new Error("Message not found")
+    }
+
+    // Verify ownership
+    if (messageToEdit.userId !== effectiveUserId) {
+      throw new Error("Unauthorized: Cannot edit another user's message")
+    }
+
+    // Verify it's a user message
+    if (messageToEdit.message?.role !== "user") {
+      throw new Error("Can only edit user messages")
+    }
+
+    // Delete all messages after this one (including AI responses)
+    await chatAgent.deleteMessageRange(ctx, {
+      threadId: args.threadId,
+      startOrder: messageToEdit.order,
+      endOrder: messageToEdit.order + 1000, // Large number to delete all subsequent messages
+    })
+
+    // Save the edited message
+    const { messageId } = await saveMessage(ctx, components.agent, {
+      threadId: args.threadId,
+      userId: effectiveUserId,
+      prompt: args.newText,
+    })
+
+    // Generate new AI response
+    await ctx.scheduler.runAfter(0, internal.chat.streamResponseAsync, {
+      threadId: args.threadId,
+      promptMessageId: messageId,
+      modelId: validatedModelId,
+      effectiveUserId,
+      isAnonymous,
+      prompt: args.newText,
+    })
+
+    return messageId
+  },
+})
+
+export const retryMessage = mutation({
+  args: {
+    messageId: v.string(),
+    threadId: v.string(),
+    modelId: v.optional(v.string()),
+    anonymousUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity()
+    const effectiveUserId = getEffectiveUserId(userId, args.anonymousUserId)
+    const isAnonymous = isAnonymousUser(effectiveUserId)
+
+    // Rate limiting
+    const rateLimitConfig = isAnonymous ? "anonymousAI" : "aiRequests"
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, rateLimitConfig, {
+      key: effectiveUserId,
+    })
+    if (!ok) {
+      throw new Error(
+        `AI rate limited. Please try again in ${Math.ceil(retryAfter / 1000)} seconds.`,
+      )
+    }
+
+    const validatedModelId = isAnonymous
+      ? validateModelIdForAnonymousUser(args.modelId)
+      : validateModelId(args.modelId)
+    const chatAgent = getChatAgent(validatedModelId, isAnonymous)
+
+    // Get the message to retry (should be an assistant message)
+    const messages = await chatAgent.listMessages(ctx, {
+      threadId: args.threadId,
+      paginationOpts: { numItems: 100, cursor: null },
+      excludeToolMessages: true,
+    })
+
+    const messageToRetry = messages.page.find((msg) => msg._id === args.messageId)
+    if (!messageToRetry) {
+      throw new Error("Message not found")
+    }
+
+    // Verify it's an assistant message
+    if (messageToRetry.message?.role !== "assistant") {
+      throw new Error("Can only retry assistant messages")
+    }
+
+    // Find the user message that prompted this response
+    const userMessage = messages.page.find(
+      (msg) => msg.message?.role === "user" && msg.order === messageToRetry.order - 1,
+    )
+    if (!userMessage) {
+      throw new Error("Could not find the user message that prompted this response")
+    }
+
+    // Verify the user owns the thread
+    if (userMessage.userId !== effectiveUserId) {
+      throw new Error("Unauthorized: Cannot retry messages in another user's thread")
+    }
+
+    // Delete the assistant message and any subsequent messages
+    await chatAgent.deleteMessageRange(ctx, {
+      threadId: args.threadId,
+      startOrder: messageToRetry.order,
+      endOrder: messageToRetry.order + 1000, // Large number to delete all subsequent messages
+    })
+
+    // Generate new AI response using the original user prompt
+    await ctx.scheduler.runAfter(0, internal.chat.streamResponseAsync, {
+      threadId: args.threadId,
+      promptMessageId: userMessage._id!,
+      modelId: validatedModelId,
+      effectiveUserId,
+      isAnonymous,
+      prompt: userMessage.text || "",
+    })
+
+    return { success: true }
+  },
+})
