@@ -1,16 +1,26 @@
 import { useState, useCallback, useRef } from "react"
-import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View, ViewStyle } from "react-native"
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  View,
+  ViewStyle,
+  Alert,
+} from "react-native"
 import { useRouter } from "expo-router"
 import { useThreadMessages, toUIMessages, useSmoothText } from "@convex-dev/agent/react"
-import { useConvexAuth } from "convex/react"
+import { useConvexAuth, useMutation } from "convex/react"
 
 import { api } from "convex/_generated/api"
 
 import { useAppTheme } from "@/theme/context"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { useResponsive } from "@/utils/useResponsive"
 
 import { Button } from "./Button"
 import { Card } from "./Card"
+import { MessageActions } from "./MessageActions"
 import { Text } from "./Text"
 
 type MessageContent =
@@ -90,8 +100,37 @@ interface Props {
   pageSize?: number
 }
 
-const MessageItem: React.FC<{ response: UIMessage }> = ({ response }) => {
+interface MessageItemProps {
+  response: UIMessage
+  threadId: string
+  isLastUserMessage: boolean
+  isActionsVisible: boolean
+  onEdit: (messageId: string, newText: string) => void
+  onRetry: (messageId: string, modelId?: string) => void
+  onMessageTap: (messageId: string) => void
+  onLongPress: (messageId: string) => void
+  showBottomSheet: boolean
+  onBottomSheetClose: () => void
+  onHoverStart?: (messageId: string) => void
+  onHoverEnd?: (messageId: string) => void
+}
+
+const MessageItem: React.FC<MessageItemProps> = ({
+  response,
+  threadId,
+  isLastUserMessage,
+  isActionsVisible,
+  onEdit,
+  onRetry,
+  onMessageTap,
+  onLongPress,
+  showBottomSheet,
+  onBottomSheetClose,
+  onHoverStart,
+  onHoverEnd,
+}) => {
   const { theme } = useAppTheme()
+  const { isSmall } = useResponsive()
 
   const role = response.role || "assistant"
 
@@ -127,22 +166,151 @@ const MessageItem: React.FC<{ response: UIMessage }> = ({ response }) => {
   }
   const $messageStyle = { ...$baseStyle, ...(isUser ? $userStyle : $assistantStyle) }
 
-  return (
+  const handleMessageTap = () => {
+    onMessageTap(response.key)
+  }
+
+  const handleLongPress = () => {
+    onLongPress(response.key)
+  }
+
+  const handleHoverIn = () => {
+    if (!isSmall && onHoverStart) {
+      onHoverStart(response.key)
+    }
+  }
+
+  const handleHoverOut = () => {
+    if (!isSmall && onHoverEnd) {
+      onHoverEnd(response.key)
+    }
+  }
+
+  const messageCard = (
     <Card
       heading={role.charAt(0).toUpperCase() + role.slice(1)}
       content={visibleText || "(No content)"}
       style={$messageStyle}
     />
   )
+
+  return (
+    <View>
+      <Pressable
+        onPress={handleMessageTap}
+        onLongPress={isSmall ? handleLongPress : undefined}
+        onHoverIn={!isSmall ? handleHoverIn : undefined}
+        onHoverOut={!isSmall ? handleHoverOut : undefined}
+      >
+        {messageCard}
+      </Pressable>
+      <MessageActions
+        messageId={response._id}
+        messageText={contentText}
+        role={role as "user" | "assistant" | "system" | "tool"}
+        isLastUserMessage={isLastUserMessage}
+        threadId={threadId}
+        isVisible={isActionsVisible}
+        onEdit={onEdit}
+        onRetry={onRetry}
+        showBottomSheet={showBottomSheet}
+        onBottomSheetClose={onBottomSheetClose}
+      />
+    </View>
+  )
 }
 
 export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
-  const [retryCount, setRetryCount] = useState<number>(0)
-  const scrollViewRef = useRef<ScrollView>(null)
+  const { theme } = useAppTheme()
   const { isAuthenticated } = useConvexAuth()
   const router = useRouter()
-  const { theme } = useAppTheme()
+  const scrollViewRef = useRef<ScrollView>(null)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const [visibleActionsMessageId, setVisibleActionsMessageId] = useState<string | null>(null)
+  const [bottomSheetMessageId, setBottomSheetMessageId] = useState<string | null>(null)
+
+  // Mutation handlers
+  const editMessage = useMutation(api.chat.editMessage)
+  const retryMessage = useMutation(api.chat.retryMessage)
+
+  // Callback handlers for message actions
+  const handleEditMessage = useCallback(
+    async (messageId: string, newText: string) => {
+      try {
+        const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : null
+        await editMessage({
+          messageId,
+          threadId,
+          newText,
+          anonymousUserId: anonymousUserId || undefined,
+        })
+      } catch (error) {
+        console.error("Failed to edit message:", error)
+        Alert.alert(
+          "Edit Failed",
+          error instanceof Error ? error.message : "Failed to edit message",
+        )
+      }
+    },
+    [editMessage, threadId, isAuthenticated],
+  )
+
+  const handleRetryMessage = useCallback(
+    async (messageId: string, modelId?: string) => {
+      try {
+        const anonymousUserId = !isAuthenticated ? getAnonymousUserId() : null
+        await retryMessage({
+          messageId,
+          threadId,
+          modelId,
+          anonymousUserId: anonymousUserId || undefined,
+        })
+      } catch (error) {
+        console.error("Failed to retry message:", error)
+        Alert.alert(
+          "Retry Failed",
+          error instanceof Error ? error.message : "Failed to retry message",
+        )
+      }
+    },
+    [retryMessage, threadId, isAuthenticated],
+  )
+
+  const handleMessageTap = useCallback(
+    (messageId: string) => {
+      // If tapping the same message that's already visible, hide it first then show it again
+      if (visibleActionsMessageId === messageId) {
+        setVisibleActionsMessageId(null)
+        // Use a small delay to ensure the state change is processed
+        setTimeout(() => {
+          setVisibleActionsMessageId(messageId)
+        }, 50)
+      } else {
+        setVisibleActionsMessageId(messageId)
+      }
+    },
+    [visibleActionsMessageId],
+  )
+
+  const handleLongPress = useCallback((messageId: string) => {
+    setBottomSheetMessageId(messageId)
+  }, [])
+
+  const handleBottomSheetClose = useCallback(() => {
+    setBottomSheetMessageId(null)
+  }, [])
+
+  const handleHoverStart = useCallback((messageId: string) => {
+    setVisibleActionsMessageId(messageId)
+  }, [])
+
+  const handleHoverEnd = useCallback(() => {
+    // Add a delay before hiding actions to allow time for clicking action buttons
+    setTimeout(() => {
+      setVisibleActionsMessageId(null)
+    }, 2000)
+  }, [])
 
   const isValidThreadId = threadId && threadId !== "chat" && threadId.length >= 10
 
@@ -195,7 +363,12 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
     return (
       <View
-        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: theme.spacing.lg }}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: theme.spacing.lg,
+        }}
       >
         <Text style={{ textAlign: "center", marginBottom: theme.spacing.md }}>
           Unable to load messages. Please try again or sign in for the best experience.
@@ -220,9 +393,32 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
   return (
     <ScrollView ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={400}>
-      {toUIMessages(serverMessages).map((item) => (
-        <MessageItem key={item.key} response={item} />
-      ))}
+      {toUIMessages(serverMessages).map((item, index) => {
+        const isLastUserMessage =
+          item.role === "user" &&
+          index ===
+            serverMessages.findLastIndex(
+              (msg) => (msg as any).message?.role === "user" || (msg as any).role === "user",
+            )
+
+        return (
+          <MessageItem
+            key={item.key}
+            response={item}
+            threadId={threadId}
+            isLastUserMessage={isLastUserMessage}
+            isActionsVisible={visibleActionsMessageId === item.key}
+            onEdit={handleEditMessage}
+            onRetry={handleRetryMessage}
+            onMessageTap={handleMessageTap}
+            onLongPress={handleLongPress}
+            showBottomSheet={bottomSheetMessageId === item.key}
+            onBottomSheetClose={handleBottomSheetClose}
+            onHoverStart={handleHoverStart}
+            onHoverEnd={handleHoverEnd}
+          />
+        )
+      })}
     </ScrollView>
   )
 }
