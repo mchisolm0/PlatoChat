@@ -1,17 +1,22 @@
 // utils/clipboard.js
 import { Platform } from "react-native"
-import * as Sentry from "@sentry/react-native" // or @sentry/browser for web
 
-let clipboardImplementation: {
-  getString: any
-  setString?: ((text: string) => Promise<void>) | ((text: string) => Promise<void>)
-  hasString?: any
+interface ClipboardImplementation {
+  getString: () => Promise<string>
+  setString: (text: string) => Promise<void>
+  hasString: () => Promise<boolean>
 }
 
+let clipboardImplementation: ClipboardImplementation
+
 if (Platform.OS === "web") {
+  const Sentry = require("@sentry/browser")
+  // SSR safety: guard access to global objects
+  const hasWindow = typeof window !== "undefined"
+  const hasNavigator = typeof navigator !== "undefined"
   clipboardImplementation = {
     setString: async (text: string) => {
-      if (navigator.clipboard && window.isSecureContext) {
+      if (hasNavigator && hasWindow && navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(text)
         } catch (error) {
@@ -30,12 +35,16 @@ if (Platform.OS === "web") {
           message: "Clipboard API not available",
           level: "info",
           data: {
-            hasClipboard: !!navigator.clipboard,
-            isSecureContext: window.isSecureContext,
-            protocol: window.location.protocol,
-            userAgent: navigator.userAgent.substring(0, 100), // Truncate for privacy
+            hasClipboard: hasNavigator ? !!navigator.clipboard : false,
+            isSecureContext: hasWindow ? window.isSecureContext : undefined,
+            protocol: hasWindow ? window.location.protocol : undefined,
+            userAgent: hasNavigator ? navigator.userAgent.substring(0, 100) : undefined, // Truncate for privacy
           },
         })
+
+        if (!hasWindow) {
+          throw new Error("Clipboard not available during server-side rendering")
+        }
 
         throw new Error(
           window.isSecureContext
@@ -46,7 +55,7 @@ if (Platform.OS === "web") {
     },
 
     getString: async (): Promise<string> => {
-      if (navigator.clipboard && window.isSecureContext) {
+      if (hasNavigator && hasWindow && navigator.clipboard && window.isSecureContext) {
         try {
           return await navigator.clipboard.readText()
         } catch (error) {
@@ -74,6 +83,7 @@ if (Platform.OS === "web") {
     },
   }
 } else {
+  const Sentry = require("@sentry/react-native")
   const Clipboard = require("@react-native-clipboard/clipboard").default
   clipboardImplementation = {
     setString: async (text: string) => {
