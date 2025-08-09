@@ -28,6 +28,15 @@ export const PAID_MODELS: ModelConfig[] = [
     features: ["chat", "advanced-reasoning", "multimodal"],
     maxTokens: 8192,
   },
+  {
+    id: "openai/gpt-5-nano",
+    displayName: "GPT-5 Nano",
+    shortName: "GPT-5 Nano",
+    provider: "openai",
+    tier: "pro",
+    features: ["chat", "fast-response", "improved-reasoning"],
+    maxTokens: 8192,
+  },
 ]
 
 export const ALL_MODELS: ModelConfig[] = [FREE_MODEL, ...PAID_MODELS]
