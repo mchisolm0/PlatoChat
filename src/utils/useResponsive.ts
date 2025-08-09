@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dimensions, ScaledSize } from "react-native"
 
 export interface ScreenSize {
@@ -18,10 +18,18 @@ export interface ResponsiveBreakpoints {
 }
 
 // Default breakpoints (can be customized)
+// Semantics:
+// - medium: min-width for medium screens
+// - large:  min-width for large screens
+// Classification:
+//   small:  width < medium
+//   medium: medium <= width < large
+//   large:  width >= large
+// Note: `small` value is retained for backward compatibility but is not used in classification.
 const DEFAULT_BREAKPOINTS: ResponsiveBreakpoints = {
-  small: 768, // Below this is considered small (mobile)
-  medium: 1024, // Between small and medium is tablet
-  large: 1440, // Above medium is large desktop
+  small: 768, // retained for backward compatibility (unused in classification)
+  medium: 1024, // min-width for medium screens
+  large: 1440, // min-width for large screens
 }
 
 /**
@@ -39,17 +47,42 @@ export const useResponsive = (
     return calculateScreenSize(width, height, breakpoints)
   })
 
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener(
-      "change",
-      ({ window }: { window: ScaledSize }) => {
-        const newScreenData = calculateScreenSize(window.width, window.height, breakpoints)
-        setScreenData(newScreenData)
-      },
-    )
+  // Stabilize breakpoints so consumers can pass inline objects without causing unnecessary resubscribes
+  const stableBreakpoints = useMemo<ResponsiveBreakpoints>(
+    () => ({
+      small: breakpoints.small,
+      medium: breakpoints.medium,
+      large: breakpoints.large,
+    }),
+    [breakpoints.small, breakpoints.medium, breakpoints.large],
+  )
 
-    return () => subscription?.remove()
-  }, [breakpoints])
+  useEffect(() => {
+    // Recompute immediately in case breakpoints changed without a dimension event
+    const current = Dimensions.get("window")
+    setScreenData(calculateScreenSize(current.width, current.height, stableBreakpoints))
+
+    const onChange = ({ window }: { window: ScaledSize }) => {
+      setScreenData(calculateScreenSize(window.width, window.height, stableBreakpoints))
+    }
+
+    const subscription = Dimensions.addEventListener("change", onChange)
+
+    // Cleanup supports both new and legacy React Native APIs
+    return () => {
+      // Newer RN returns an EventSubscription with remove()
+      const subAny = subscription as any
+      if (subAny && typeof subAny.remove === "function") {
+        subAny.remove()
+      } else {
+        // Legacy API: removeEventListener
+        const dimsAny = Dimensions as any
+        if (typeof dimsAny.removeEventListener === "function") {
+          dimsAny.removeEventListener("change", onChange)
+        }
+      }
+    }
+  }, [stableBreakpoints])
 
   return screenData
 }
@@ -62,10 +95,14 @@ function calculateScreenSize(
   height: number,
   breakpoints: ResponsiveBreakpoints,
 ): ScreenSize {
-  const isSmall = width < breakpoints.small
-  const isMedium = width >= breakpoints.small && width < breakpoints.large
+  // Use medium and large as min-width thresholds
+  const isSmall = width < breakpoints.medium
+  const isMedium = width >= breakpoints.medium && width < breakpoints.large
   const isLarge = width >= breakpoints.large
-  const isPortrait = height > width
+
+  // Define a consistent rule when width === height:
+  // Treat square screens as portrait to ensure mutual exclusivity and full coverage
+  const isPortrait = height >= width
   const isLandscape = width > height
 
   return {
