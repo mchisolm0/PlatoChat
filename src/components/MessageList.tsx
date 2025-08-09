@@ -165,24 +165,26 @@ const MessageItem: React.FC<MessageItemProps> = ({
     marginLeft: theme.spacing.md,
   }
   const $messageStyle = { ...$baseStyle, ...(isUser ? $userStyle : $assistantStyle) }
+  // Prefer stable database id for interactions; fall back to UI key if missing
+  const messageId = response._id ?? response.key
 
   const handleMessageTap = () => {
-    onMessageTap(response.key)
+    onMessageTap(messageId)
   }
 
   const handleLongPress = () => {
-    onLongPress(response.key)
+    onLongPress(messageId)
   }
 
   const handleHoverIn = () => {
     if (!isSmall && onHoverStart) {
-      onHoverStart(response.key)
+      onHoverStart(messageId)
     }
   }
 
   const handleHoverOut = () => {
     if (!isSmall && onHoverEnd) {
-      onHoverEnd(response.key)
+      onHoverEnd(messageId)
     }
   }
 
@@ -407,12 +409,12 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
             response={item}
             threadId={threadId}
             isLastUserMessage={isLastUserMessage}
-            isActionsVisible={visibleActionsMessageId === item.key}
+            isActionsVisible={visibleActionsMessageId === ((item as any)._id ?? item.key)}
             onEdit={handleEditMessage}
             onRetry={handleRetryMessage}
             onMessageTap={handleMessageTap}
             onLongPress={handleLongPress}
-            showBottomSheet={bottomSheetMessageId === item.key}
+            showBottomSheet={bottomSheetMessageId === ((item as any)._id ?? item.key)}
             onBottomSheetClose={handleBottomSheetClose}
             onHoverStart={handleHoverStart}
             onHoverEnd={handleHoverEnd}

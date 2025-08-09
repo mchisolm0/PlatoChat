@@ -79,9 +79,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const handleEdit = () => {
     if (!onEdit) return
 
-    // Ensure we have a valid database ID (not a UIMessage key)
-    if (!hasValidDbId) {
-      Alert.alert("Edit Error", "Cannot edit this message. Please try refreshing the page.")
+    const id = messageId
+    if (!id) {
+      Alert.alert("Edit Error", "Cannot edit this message right now.")
       return
     }
 
@@ -94,7 +94,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           text: "Save",
           onPress: (newText) => {
             if (newText && newText.trim() !== messageText.trim()) {
-              onEdit(messageId, newText.trim())
+              onEdit(id, newText.trim())
             }
           },
         },
@@ -107,15 +107,16 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const handleRetry = () => {
     if (!onRetry) return
 
-    // Ensure we have a valid database ID (not a UIMessage key)
-    if (!hasValidDbId) {
-      Alert.alert("Retry Error", "Cannot retry this message. Please try refreshing the page.")
+    // Ensure we have a message ID before proceeding
+    const id = messageId
+    if (!id) {
+      Alert.alert("Retry Error", "Cannot retry this message right now.")
       return
     }
 
     // For now, just retry with the same model
     // TODO: Add model selection dialog
-    onRetry(messageId)
+    onRetry(id)
   }
 
   const showCopyButton = messageText.trim().length > 0
@@ -123,10 +124,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const showEditButton = role === "user" && isLastUserMessage
   // Show retry button for assistant messages (even if no DB ID yet)
   const showRetryButton = role === "assistant"
-
-  // Check if we have a valid database ID for backend operations
-  const hasValidDbId = messageId && messageId.match(/^[a-z0-9]{32}$/)
-
   const $containerStyle: ViewStyle = {
     flexDirection: "row",
     alignItems: "center",

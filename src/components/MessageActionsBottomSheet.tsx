@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { View, ViewStyle, Modal, Pressable } from "react-native"
 import Animated, {
   useSharedValue,
@@ -23,6 +23,7 @@ interface MessageActionsBottomSheetProps {
   onCopy: () => void
   onEdit?: () => void
   onRetry?: () => void
+  onDismiss?: () => void
 }
 
 export const MessageActionsBottomSheet: React.FC<MessageActionsBottomSheetProps> = ({
@@ -34,12 +35,14 @@ export const MessageActionsBottomSheet: React.FC<MessageActionsBottomSheetProps>
   onCopy,
   onEdit,
   onRetry,
+  onDismiss,
 }) => {
   const { theme } = useAppTheme()
   const insets = useSafeAreaInsets()
 
   const translateY = useSharedValue(300)
   const opacity = useSharedValue(0)
+  const [rendered, setRendered] = useState(isVisible)
 
   const showCopyButton = messageText.trim().length > 0
   const showEditButton = role === "user" && isLastUserMessage
@@ -48,6 +51,8 @@ export const MessageActionsBottomSheet: React.FC<MessageActionsBottomSheetProps>
   // Animation for showing/hiding the bottom sheet
   useEffect(() => {
     if (isVisible) {
+      // Ensure the modal is rendered before playing the show animation
+      setRendered(true)
       opacity.value = withTiming(1, { duration: 200 })
       translateY.value = withSpring(0, {
         damping: 20,
@@ -57,11 +62,14 @@ export const MessageActionsBottomSheet: React.FC<MessageActionsBottomSheetProps>
       opacity.value = withTiming(0, { duration: 200 })
       translateY.value = withTiming(300, { duration: 200 }, (finished) => {
         if (finished) {
-          runOnJS(onClose)()
+          // After the hide animation completes, stop rendering the modal
+          runOnJS(setRendered)(false)
+          // Optionally notify parent that the sheet has fully dismissed
+          if (onDismiss) runOnJS(onDismiss)()
         }
       })
     }
-  }, [isVisible, opacity, translateY, onClose])
+  }, [isVisible, opacity, translateY, onDismiss])
 
   const backdropAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -147,10 +155,6 @@ export const MessageActionsBottomSheet: React.FC<MessageActionsBottomSheetProps>
     marginBottom: 0,
   }
 
-  if (!isVisible) {
-    return null
-  }
-
   const $modalContainerStyle: ViewStyle = {
     flex: 1,
   }
@@ -161,7 +165,7 @@ export const MessageActionsBottomSheet: React.FC<MessageActionsBottomSheetProps>
 
   return (
     <Modal
-      visible={isVisible}
+      visible={rendered}
       transparent
       animationType="none"
       onRequestClose={onClose}
