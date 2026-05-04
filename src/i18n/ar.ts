@@ -2,15 +2,33 @@ import { Translations } from "./en"
 
 const ar: Translations = {
   common: {
+    appName: "",
+    appTagline: "",
+    continue: "",
     ok: "نعم",
     cancel: "حذف",
     back: "خلف",
   },
-  welcomeScreen: {
-    postscript:
-      "ربما لا يكون هذا هو الشكل الذي يبدو عليه تطبيقك مالم يمنحك المصمم هذه الشاشات وشحنها في هذه الحالة",
-    readyForLaunch: "تطبيقك تقريبا جاهز للتشغيل",
-    exciting: "اوه هذا مثير",
+  auth: {
+    signin: "",
+    signup: "",
+    signout: "",
+    createAccountTitle: "",
+    createAccountSubTitle: "",
+    signInTitle: "",
+    signInSubTitle: "",
+    email: "",
+    emailPlaceholder: "",
+    verifyEmail: "",
+    verifyEmailPlaceholder: "",
+    verifyEmailCode: "",
+    password: "",
+    passwordPlaceholder: "",
+    confirmPassword: "",
+    forgotPassword: "",
+    resetPassword: "",
+    noAccount: "",
+    haveAccount: "",
   },
   errorScreen: {
     title: "هناك خطأ ما",

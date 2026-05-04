@@ -17,7 +17,8 @@ const fallbackLocale = "en-US"
 
 const systemLocales = Localization.getLocales()
 
-const resources = { ar, en, ko, es, fr, ja, hi }
+// const resources = { ar, en, ko, es, fr, ja, hi }
+const resources = { en, es }
 const supportedTags = Object.keys(resources)
 
 // Checks to see if the device locale matches any of the supported locales

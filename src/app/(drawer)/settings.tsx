@@ -31,7 +31,7 @@ export default function SettingsScreen() {
       </View>
 
       <Section titleTx="settings:accountInformation">
-        {user?.emailAddresses?.length > 0 ? (
+        {user?.emailAddresses && user?.emailAddresses.length > 0 ? (
           <Card
             preset="default"
             headingTx="settings:email"
