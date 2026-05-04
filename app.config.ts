@@ -110,6 +110,8 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
 
     plugins: [
       ...existingPlugins,
+      "@sentry/react-native",
+      "expo-router",
       "expo-secure-store",
       "expo-web-browser",
       "expo-localization",
