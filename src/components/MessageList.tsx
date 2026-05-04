@@ -1,22 +1,24 @@
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
+  Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
+  TextStyle,
   View,
   ViewStyle,
-  TextStyle,
-  Alert,
 } from "react-native"
 import { useRouter } from "expo-router"
-import { useThreadMessages, toUIMessages, useSmoothText } from "@convex-dev/agent/react"
+import { toUIMessages, useSmoothText, useThreadMessages } from "@convex-dev/agent/react"
 import { useConvexAuth, useMutation } from "convex/react"
+import { Markdown, themes } from "react-native-remark"
 
 import { api } from "convex/_generated/api"
 
 import { useAppTheme } from "@/theme/context"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import clipboard from "@/utils/clipboard"
 import { useResponsive } from "@/utils/useResponsive"
 
 import { Button } from "./Button"
@@ -197,10 +199,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const timestamp = formatTimestamp(response._creationTime)
 
+  const { githubTheme } = themes
+
   const messageCard = (
     <Card
       heading={role.charAt(0).toUpperCase() + role.slice(1)}
-      content={visibleText || "(No content)"}
+      ContentComponent={
+        <Markdown
+          markdown={visibleText || "(No content)"}
+          theme={githubTheme}
+          onCodeCopy={(code) => clipboard.setString(code)}
+        ></Markdown>
+      }
       footer={timestamp}
       FooterTextProps={{ style: { color: theme.colors.textDim } }}
       style={$messageStyle}
