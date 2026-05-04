@@ -2,30 +2,30 @@ export interface ModelConfig {
   id: string
   displayName: string
   shortName: string
-  provider: "openai" | "google"
+  provider: "openai" | "google" | "minimax"
   tier: "free" | "pro"
   features?: string[]
   maxTokens?: number
 }
 
 export const FREE_MODEL: ModelConfig = {
-  id: "openai/gpt-4.1-nano",
-  displayName: "GPT-4.1 Nano",
-  shortName: "GPT-4.1 Nano",
-  provider: "openai",
-  tier: "free",
-  features: ["chat", "fast-response"],
-  maxTokens: 4096,
+  id: "google/gemini-2.0-flash-001",
+  displayName: "Gemini 2.0 Flash",
+  shortName: "Gemini 2.0",
+  provider: "google",
+  tier: "pro",
+  features: ["chat", "advanced-reasoning", "multimodal"],
+  maxTokens: 8192,
 }
 
 export const PAID_MODELS: ModelConfig[] = [
   {
-    id: "google/gemini-2.0-flash-001",
-    displayName: "Gemini 2.0 Flash",
-    shortName: "Gemini 2.0",
-    provider: "google",
-    tier: "pro",
-    features: ["chat", "advanced-reasoning", "multimodal"],
+    id: "minimax/minimax-m2.5:free",
+    displayName: "MiniMax M2.5",
+    shortName: "M2.5",
+    provider: "minimax",
+    tier: "free",
+    features: ["chat", "improved-reasoning"],
     maxTokens: 8192,
   },
   {
@@ -36,6 +36,24 @@ export const PAID_MODELS: ModelConfig[] = [
     tier: "pro",
     features: ["chat", "fast-response", "improved-reasoning"],
     maxTokens: 8192,
+  },
+  {
+    id: "openai/gpt-oss-20b",
+    displayName: "GPT-OSS 20B",
+    shortName: "OSS 20B",
+    provider: "openai",
+    tier: "free",
+    features: ["chat", "fast-response"],
+    maxTokens: 32000,
+  },
+  {
+    id: "openai/gpt-oss-120b",
+    displayName: "GPT-OSS 120B",
+    shortName: "OSS 120B",
+    provider: "openai",
+    tier: "pro",
+    features: ["chat", "fast-response"],
+    maxTokens: 32000,
   },
 ]
 
