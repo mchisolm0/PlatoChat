@@ -3,16 +3,33 @@
  */
 import * as Sentry from "@sentry/react-native"
 
+const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN
+
 export const initCrashReporting = () => {
+  if (!dsn) {
+    if (__DEV__) {
+      console.warn("Sentry disabled: missing EXPO_PUBLIC_SENTRY_DSN")
+    }
+    return
+  }
+
   Sentry.init({
-    dsn: "https://02c59ce23297a578c341f7f2e46069b2@o4507118738669568.ingest.us.sentry.io/4509701281873920",
+    dsn,
+    debug: __DEV__,
+    environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production"),
 
     sendDefaultPii: false,
+    enableCaptureFailedRequests: true,
+    tracesSampleRate: __DEV__ ? 1 : 0.1,
+    profilesSampleRate: 1,
 
-    // Configure Session Replay
+    // Session Replay is most useful when paired with baseline tracing.
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1,
-    integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+    integrations: [
+      Sentry.mobileReplayIntegration(),
+      Sentry.feedbackIntegration(),
+    ],
   })
 }
 

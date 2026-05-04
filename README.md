@@ -7,6 +7,8 @@ bun install
 bun run start
 ```
 
+Set `EXPO_PUBLIC_SENTRY_DSN` in your local env before running the app if you want Sentry enabled. For EAS builds, also set `SENTRY_AUTH_TOKEN` as an EAS secret so source maps and debug symbols can upload during native builds.
+
 To make things work on your local simulator, or on your phone, you need first to [run `eas build`](https://github.com/infinitered/ignite/blob/master/docs/expo/EAS.md). We have many shortcuts on `package.json` to make it easier:
 
 ```bash
