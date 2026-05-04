@@ -150,6 +150,13 @@ export const ModelSelector: React.FC<Props> = ({
     fontFamily: typography.primary.medium,
     color: colors.palette.accent500,
   }))
+  const $backdropTouchable = themed<ViewStyle>(() => ({ flex: 1 }))
+  const $titleText = themed<TextStyle>(({ typography, colors }) => ({
+    fontSize: 18,
+    fontFamily: typography.primary.bold,
+    color: colors.text,
+    textAlign: "center",
+  }))
 
   return (
     <View style={[$container, style]}>
@@ -168,23 +175,18 @@ export const ModelSelector: React.FC<Props> = ({
       {isOpen && (
         <>
           <Animated.View style={[$backdrop, animatedBackgroundStyle]}>
-            <TouchableOpacity style={{ flex: 1 }} onPress={closeDropdown} activeOpacity={1} />
+            <TouchableOpacity
+              style={$backdropTouchable}
+              onPress={closeDropdown}
+              activeOpacity={1}
+            />
           </Animated.View>
           <Animated.View
             style={[$menu, animatedDropdownStyle]}
             onStartShouldSetResponder={() => true}
           >
             <View style={$title}>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontFamily: theme.typography.primary.bold,
-                  color: theme.colors.text,
-                  textAlign: "center",
-                }}
-              >
-                Select Model
-              </Text>
+              <Text style={$titleText}>Select Model</Text>
             </View>
 
             <ScrollView style={$list} contentContainerStyle={$listContent}>

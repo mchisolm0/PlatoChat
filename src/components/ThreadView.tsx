@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { View } from "react-native"
+import type { ViewStyle } from "react-native"
 import { useUser } from "@clerk/clerk-expo"
 import { optimisticallySendMessage } from "@convex-dev/agent/react"
 import { useMutation } from "convex/react"
@@ -37,6 +38,14 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
 
   const isAuthenticated = !!user
 
+  const $flexFill: ViewStyle = { flex: 1 }
+  const $invalidThreadContainer: ViewStyle = { flex: 1, gap: theme.spacing.md }
+  const $composerContainer: ViewStyle = {
+    paddingHorizontal: theme.spacing.md,
+    gap: theme.spacing.md,
+  }
+  const $row: ViewStyle = { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }
+
   useEffect(() => {
     const effectiveModel = getEffectiveModelForThread(threadId)
     setSelectedModelId(effectiveModel)
@@ -49,16 +58,16 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
 
   if (!threadId || threadId === "chat" || threadId.length < 10) {
     return (
-      <View style={{ flex: 1, gap: theme.spacing.md }}>
+      <View style={$invalidThreadContainer}>
         <Text preset="subheading" tx="chat:invalidThreadId" />
       </View>
     )
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={$flexFill}>
       <MessageList threadId={threadId} />
-      <View style={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing.md }}>
+      <View style={$composerContainer}>
         <TextField
           value={message}
           editable={!isLoading}
@@ -86,12 +95,12 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
             }
           }}
         />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
+        <View style={$row}>
           <ModelSelector
             selectedModelId={selectedModelId}
             onModelChange={handleModelChange}
             disabled={isLoading}
-            style={{ flex: 1 }}
+            style={$flexFill}
           />
           <Button
             text="Send"

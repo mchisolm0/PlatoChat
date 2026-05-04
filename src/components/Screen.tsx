@@ -13,12 +13,12 @@ import {
 import { useScrollToTop } from "@react-navigation/native"
 import { SystemBars, SystemBarsProps, SystemBarStyle } from "react-native-edge-to-edge"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
+import Animated, { useAnimatedStyle } from "react-native-reanimated"
 
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
-import { ExtendedEdge, useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
-import Animated, { useAnimatedStyle } from "react-native-reanimated"
 import { useGradualAnimation } from "@/utils/useGradualeAnimation"
+import { ExtendedEdge, useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
 
 export const DEFAULT_BOTTOM_OFFSET = 50
 

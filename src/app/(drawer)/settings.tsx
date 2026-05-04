@@ -1,4 +1,5 @@
 import { View } from "react-native"
+import type { ViewStyle, ImageStyle, TextStyle } from "react-native"
 import { useUser } from "@clerk/clerk-expo"
 
 import { AutoImage } from "@/components/AutoImage"
@@ -13,18 +14,24 @@ import { spacing } from "@/theme/spacing"
 export default function SettingsScreen() {
   const { user } = useUser()
 
+  const hasEmail = !!(user?.emailAddresses && user.emailAddresses.length > 0)
+  const isVerified = !!user?.hasVerifiedEmailAddress
+
+  const $container: ViewStyle = { flex: 1, padding: spacing.lg }
+  const $header: ViewStyle = { alignItems: "center" }
+  const $avatar: ImageStyle = {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: spacing.sm,
+  }
+  const $cardStyle: ViewStyle = { padding: spacing.md }
+  const $footerStyle: TextStyle = { color: isVerified ? colors.success : colors.error }
+
   return (
-    <Screen preset="scroll" contentContainerStyle={{ flex: 1, padding: spacing.lg }}>
-      <View style={{ alignItems: "center" }}>
-        <AutoImage
-          source={{ uri: user?.imageUrl || undefined }}
-          style={{
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            marginBottom: spacing.sm,
-          }}
-        />
+    <Screen preset="scroll" contentContainerStyle={$container}>
+      <View style={$header}>
+        <AutoImage source={{ uri: user?.imageUrl || undefined }} style={$avatar} />
         <Text size="lg" preset="bold">
           {user?.fullName}
         </Text>
@@ -39,8 +46,8 @@ export default function SettingsScreen() {
             footerTx={
               user?.hasVerifiedEmailAddress ? "settings:emailVerified" : "settings:emailNotVerified"
             }
-            footerStyle={{ color: user?.hasVerifiedEmailAddress ? colors.success : colors.error }}
-            style={{ padding: spacing.md }}
+            footerStyle={$footerStyle}
+            style={$cardStyle}
           />
         ) : (
           <Text tx="settings:noEmail" />

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   View,
   ViewStyle,
+  TextStyle,
   Alert,
 } from "react-native"
 import { useRouter } from "expo-router"
@@ -20,6 +21,7 @@ import { useResponsive } from "@/utils/useResponsive"
 
 import { Button } from "./Button"
 import { Card } from "./Card"
+import { PressableIcon } from "./Icon"
 import { MessageActions } from "./MessageActions"
 import { Text } from "./Text"
 
@@ -89,11 +91,6 @@ interface UIMessage {
   [key: string]: any
 }
 
-interface PaginationOptions {
-  cursor?: string | null
-  numItems: number
-}
-
 interface Props {
   threadId: string
   optimisticMessages?: Response[]
@@ -113,6 +110,16 @@ interface MessageItemProps {
   onBottomSheetClose: () => void
   onHoverStart?: (messageId: string) => void
   onHoverEnd?: (messageId: string) => void
+}
+
+function formatTimestamp(ms?: number): string | undefined {
+  if (!ms) return undefined
+  try {
+    const d = new Date(ms)
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  } catch {
+    return undefined
+  }
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -188,10 +195,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
     }
   }
 
+  const timestamp = formatTimestamp(response._creationTime)
+
   const messageCard = (
     <Card
       heading={role.charAt(0).toUpperCase() + role.slice(1)}
       content={visibleText || "(No content)"}
+      footer={timestamp}
+      FooterTextProps={{ style: { color: theme.colors.textDim } }}
       style={$messageStyle}
     />
   )
@@ -231,6 +242,29 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   const [retryCount, setRetryCount] = useState(0)
   const [visibleActionsMessageId, setVisibleActionsMessageId] = useState<string | null>(null)
   const [bottomSheetMessageId, setBottomSheetMessageId] = useState<string | null>(null)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  const isAtBottomRef = useRef(true)
+
+  const $flexFill: ViewStyle = { flex: 1 }
+  const $centerContent: ViewStyle = {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  }
+  const $unauthContainer: ViewStyle = {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.lg,
+  }
+  const $unauthMessageText: TextStyle = {
+    textAlign: "center",
+    marginBottom: theme.spacing.md,
+  }
+  const $buttonRow: ViewStyle = {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+  }
 
   // Mutation handlers
   const editMessage = useMutation(api.chat.editMessage)
@@ -330,7 +364,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { contentOffset } = event.nativeEvent
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
       const isNearTop = contentOffset.y < 100
       if (isNearTop && status === "CanLoadMore" && !isLoadingMore) {
         setIsLoadingMore(true)
@@ -342,13 +376,40 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
           setIsLoadingMore(false)
         }
       }
+
+      const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height)
+      const isNearBottom = distanceFromBottom < 100
+      isAtBottomRef.current = isNearBottom
+      setShowScrollToBottom(!isNearBottom)
     },
     [status, isLoadingMore, pageSize, loadMore],
   )
 
+  const handleContentSizeChange = useCallback(() => {
+    if (isAtBottomRef.current) {
+      scrollViewRef.current?.scrollToEnd({ animated: true })
+    }
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: true })
+    isAtBottomRef.current = true
+    setShowScrollToBottom(false)
+  }, [])
+
+  // Ensure on first render we start at bottom after layout
+  useEffect(() => {
+    const id = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: false })
+      isAtBottomRef.current = true
+      setShowScrollToBottom(false)
+    }, 0)
+    return () => clearTimeout(id)
+  }, [])
+
   if (!isValidThreadId) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={$flexFill}>
         <Text>Invalid thread ID</Text>
       </View>
     )
@@ -364,18 +425,11 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
     }
 
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: theme.spacing.lg,
-        }}
-      >
-        <Text style={{ textAlign: "center", marginBottom: theme.spacing.md }}>
+      <View style={$unauthContainer}>
+        <Text style={$unauthMessageText}>
           Unable to load messages. Please try again or sign in for the best experience.
         </Text>
-        <View style={{ flexDirection: "row", gap: theme.spacing.md }}>
+        <View style={$buttonRow}>
           <Button text="Try Again" onPress={handleRetry} />
           <Button text="Sign In" onPress={handleSignIn} />
         </View>
@@ -387,40 +441,96 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
   if (serverMessages.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={$centerContent}>
         <Text preset="subheading" tx="chat:noMessages" />
       </View>
     )
   }
 
-  return (
-    <ScrollView ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={400}>
-      {toUIMessages(serverMessages).map((item, index) => {
-        const isLastUserMessage =
-          item.role === "user" &&
-          index ===
-            serverMessages.findLastIndex(
-              (msg) => (msg as any).message?.role === "user" || (msg as any).role === "user",
-            )
+  const uiMessages = toUIMessages(serverMessages)
+  const isAssistantStreaming = uiMessages.some(
+    (m) => (m.role ?? "assistant") === "assistant" && (m as any).streaming,
+  )
+  const typingDots = ".".repeat(Math.floor(Date.now() / 400) % 4)
 
-        return (
-          <MessageItem
-            key={item.key}
-            response={item}
-            threadId={threadId}
-            isLastUserMessage={isLastUserMessage}
-            isActionsVisible={visibleActionsMessageId === ((item as any)._id ?? item.key)}
-            onEdit={handleEditMessage}
-            onRetry={handleRetryMessage}
-            onMessageTap={handleMessageTap}
-            onLongPress={handleLongPress}
-            showBottomSheet={bottomSheetMessageId === ((item as any)._id ?? item.key)}
-            onBottomSheetClose={handleBottomSheetClose}
-            onHoverStart={handleHoverStart}
-            onHoverEnd={handleHoverEnd}
+  const $typingBubbleStyle: ViewStyle = {
+    alignSelf: "flex-start",
+    backgroundColor: theme.colors.palette.neutral400,
+    marginLeft: theme.spacing.md,
+    padding: theme.spacing.md,
+    marginVertical: theme.spacing.xxs,
+    borderRadius: theme.spacing.md,
+    maxWidth: "80%",
+  }
+
+  const $fabStyle: ViewStyle = {
+    position: "absolute",
+    right: theme.spacing.md,
+    bottom: theme.spacing.lg,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.palette.accent500,
+    shadowColor: theme.colors.palette.neutral900,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  }
+
+  return (
+    <View style={$flexFill}>
+      <ScrollView
+        ref={scrollViewRef}
+        onScroll={handleScroll}
+        onContentSizeChange={handleContentSizeChange}
+        scrollEventThrottle={100}
+      >
+        {uiMessages.map((item, index) => {
+          const isLastUserMessage =
+            item.role === "user" &&
+            index ===
+              serverMessages.findLastIndex(
+                (msg) => (msg as any).message?.role === "user" || (msg as any).role === "user",
+              )
+
+          return (
+            <MessageItem
+              key={item.key}
+              response={item}
+              threadId={threadId}
+              isLastUserMessage={isLastUserMessage}
+              isActionsVisible={visibleActionsMessageId === ((item as any)._id ?? item.key)}
+              onEdit={handleEditMessage}
+              onRetry={handleRetryMessage}
+              onMessageTap={handleMessageTap}
+              onLongPress={handleLongPress}
+              showBottomSheet={bottomSheetMessageId === ((item as any)._id ?? item.key)}
+              onBottomSheetClose={handleBottomSheetClose}
+              onHoverStart={handleHoverStart}
+              onHoverEnd={handleHoverEnd}
+            />
+          )
+        })}
+
+        {isAssistantStreaming && (
+          <View>
+            <Card heading="Assistant" content={`Typing${typingDots}`} style={$typingBubbleStyle} />
+          </View>
+        )}
+      </ScrollView>
+
+      {showScrollToBottom && (
+        <Pressable onPress={scrollToBottom} style={$fabStyle}>
+          <PressableIcon
+            icon="chevronDownOutline"
+            size={20}
+            color={theme.colors.palette.neutral100}
           />
-        )
-      })}
-    </ScrollView>
+        </Pressable>
+      )}
+    </View>
   )
 }
