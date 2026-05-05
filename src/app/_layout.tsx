@@ -29,9 +29,7 @@ const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL
 if (!publishableKey) throw new Error("Missing Clerk publishable key")
 if (!convexUrl) throw new Error("Missing Convex URL")
 
-const convexClient = new ConvexReactClient(convexUrl, {
-  unsavedChangesWarning: false,
-})
+const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL as string)
 
 export { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary"
 
@@ -64,13 +62,12 @@ function Root() {
   return (
     <ClerkProvider publishableKey={publishableKey || ""} tokenCache={tokenCache}>
       <ClerkLoaded>
-        <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>
             <ThemeProvider>
               <KeyboardProvider>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 </Stack>
               </KeyboardProvider>
             </ThemeProvider>

@@ -1,6 +1,7 @@
-import { Image, ImageStyle, TextStyle, View, ViewStyle, Pressable } from "react-native"
+import { Image, ImageStyle, TextStyle, View, ViewStyle, Pressable, ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
-import { useUser } from "@clerk/expo"
+import { useAuth, useUser, useClerk, useUserProfileModal } from "@clerk/expo"
+import { AuthView, UserButton } from "@clerk/expo/native"
 import {
   Authenticated,
   Unauthenticated,
@@ -26,10 +27,25 @@ const welcomeFace = require("@assets/images/welcome-face.png")
 
 export default function WelcomeScreen() {
   const { themed, theme } = useAppTheme()
+  const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false })
   const { user } = useUser()
-  const { isAuthenticated } = useConvexAuth()
+  const { SignOut } = useClerk()
+  const { presentUserProfile } = useUserProfileModal()
+  const { isAuthenticated, isLoading } = useConvexAuth()
   const createThread = useMutation(api.chat.createThread)
   const router = useRouter()
+
+  if (!isLoaded) {
+    return (
+      <View style={themed($centered)}>
+        <ActivityIndicator size="large" />
+      </View>
+    )
+  }
+
+  if (!isSignedIn) {
+    return <AuthView mode="signInOrUp" />
+  }
 
   const handleNewChat = () => {
     const threadArgs = isAuthenticated ? {} : { anonymousUserId: getAnonymousUserId() }
@@ -78,14 +94,14 @@ export default function WelcomeScreen() {
             text="Sign up for more generous access (100 messages/day on free tier, 500 messages/day on pro tier):"
             style={themed($anonymousSubtext)}
           />
-          <View style={themed($linkContainer)}>
+          {/*<View style={themed($linkContainer)}>
             <Pressable onPress={() => router.push("/(auth)/sign-in")}>
               <Text tx="auth:signin" style={{ color: theme.colors.tint }} />
             </Pressable>
             <Pressable onPress={() => router.push("/(auth)/sign-up")}>
               <Text tx="auth:signup" style={{ color: theme.colors.tint }} />
             </Pressable>
-          </View>
+          </View>*/}
         </Unauthenticated>
         <AuthLoading>
           <Text>Loading...</Text>
@@ -94,6 +110,13 @@ export default function WelcomeScreen() {
     </Screen>
   )
 }
+
+const $centered: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingHorizontal: spacing.lg,
+})
 
 const $topContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexShrink: 1,

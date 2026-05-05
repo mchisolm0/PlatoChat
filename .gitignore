@@ -87,6 +87,8 @@ web-build/
 !env.js
 .env
 .env.local
+.env.development
+.env.production
 
 /coverage
 
@@ -97,5 +99,7 @@ web-build/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+.env.local
 
 .env.local

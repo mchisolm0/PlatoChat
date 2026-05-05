@@ -16,9 +16,11 @@ export const initCrashReporting = () => {
   Sentry.init({
     dsn,
     debug: __DEV__,
-    environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production"),
+    environment:
+      process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production"),
 
     sendDefaultPii: false,
+    enableLogs: true,
     enableCaptureFailedRequests: true,
     tracesSampleRate: __DEV__ ? 1 : 0.1,
     profilesSampleRate: 1,
@@ -26,10 +28,7 @@ export const initCrashReporting = () => {
     // Session Replay is most useful when paired with baseline tracing.
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1,
-    integrations: [
-      Sentry.mobileReplayIntegration(),
-      Sentry.feedbackIntegration(),
-    ],
+    integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
   })
 }
 
