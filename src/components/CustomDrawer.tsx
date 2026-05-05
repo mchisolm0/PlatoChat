@@ -2,8 +2,7 @@
 import { useRef } from "react"
 import { View, TouchableOpacity, ViewStyle, TextStyle } from "react-native"
 import { Link } from "expo-router"
-import { useClerk } from "@clerk/clerk-expo"
-import { DrawerContentComponentProps } from "@react-navigation/drawer"
+import { useClerk } from "@clerk/expo"
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react"
 
 import { Button } from "@/components/Button"
@@ -25,7 +24,7 @@ interface ChatThread {
   summary?: string
 }
 
-interface CustomDrawerProps extends DrawerContentComponentProps {
+interface CustomDrawerProps {
   chatThreads: ChatThread[] | undefined
   handleThreadPress: (threadId: string) => void
   onLogin: () => void

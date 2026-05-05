@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Stack, SplashScreen } from "expo-router"
-import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo"
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/expo"
 import { useFonts } from "@expo-google-fonts/space-grotesk"
 import * as Sentry from "@sentry/react-native"
 import { ConvexReactClient } from "convex/react"
@@ -62,7 +62,7 @@ function Root() {
   }
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={publishableKey || ""} tokenCache={tokenCache}>
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>

@@ -64,7 +64,6 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
     runtimeVersion: {
       policy: "appVersion",
     },
-    newArchEnabled: true,
     jsEngine: "hermes",
     assetBundlePatterns: ["**/*"],
 
@@ -100,7 +99,6 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: "#ffffff",
       },
       allowBackup: false,
-      edgeToEdgeEnabled: true,
     },
 
     web: {
@@ -111,6 +109,7 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       ...existingPlugins,
       "@sentry/react-native",
+      "expo-build-properties",
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",

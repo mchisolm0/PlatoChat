@@ -1,8 +1,9 @@
 import { useState } from "react"
 import { View } from "react-native"
 import { Link, useRouter } from "expo-router"
-import { isClerkAPIResponseError, useSignIn } from "@clerk/clerk-expo"
-import { ClerkAPIError } from "@clerk/types"
+import { isClerkAPIResponseError } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo";
+import { ClerkAPIError } from "@clerk/shared/types"
 import { KeyboardToolbar } from "react-native-keyboard-controller"
 
 import { Button } from "@/components/Button"

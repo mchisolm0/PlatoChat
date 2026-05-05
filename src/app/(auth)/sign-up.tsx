@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from "react"
 import { View } from "react-native"
 import { Link, useRouter } from "expo-router"
-import { isClerkAPIResponseError, useSignUp } from "@clerk/clerk-expo"
+import { isClerkAPIResponseError } from "@clerk/expo";
+import { useSignUp } from "@clerk/expo";
 
 import { Button } from "@/components/Button"
 import { PressableIcon } from "@/components/Icon"
@@ -9,7 +10,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { spacing } from "@/theme/spacing"
-import { ClerkAPIError } from "@clerk/types"
+import { ClerkAPIError } from "@clerk/shared/types"
 import { KeyboardToolbar } from "react-native-keyboard-controller"
 
 export default function SignUpScreen() {

@@ -1,5 +1,5 @@
 import * as Linking from "expo-linking"
-import { useClerk } from "@clerk/clerk-expo"
+import { useClerk } from "@clerk/expo"
 
 import { Button } from "@/components/Button"
 

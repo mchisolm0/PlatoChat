@@ -1,6 +1,6 @@
 import { View } from "react-native"
 import type { ViewStyle, ImageStyle, TextStyle } from "react-native"
-import { useUser } from "@clerk/clerk-expo"
+import { useUser } from "@clerk/expo"
 
 import { AutoImage } from "@/components/AutoImage"
 import { Card } from "@/components/Card"

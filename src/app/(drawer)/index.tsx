@@ -1,6 +1,6 @@
 import { Image, ImageStyle, TextStyle, View, ViewStyle, Pressable } from "react-native"
 import { useRouter } from "expo-router"
-import { useUser } from "@clerk/clerk-expo"
+import { useUser } from "@clerk/expo"
 import {
   Authenticated,
   Unauthenticated,
