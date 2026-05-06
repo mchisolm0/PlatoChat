@@ -66,7 +66,7 @@ export default function Layout() {
 
   const handleThreadPress = useCallback(
     (navigation: any) => (threadId: string) => {
-      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } })
+      router.push({ pathname: "/(home)/[threadId]", params: { threadId } })
       navigation.closeDrawer()
     },
     [router],
