@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Stack, SplashScreen } from "expo-router"
-import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/expo"
+import { ClerkProvider, useAuth } from "@clerk/expo"
 import { useFonts } from "@expo-google-fonts/space-grotesk"
 import * as Sentry from "@sentry/react-native"
 import { ConvexReactClient } from "convex/react"
@@ -61,19 +61,17 @@ function Root() {
 
   return (
     <ClerkProvider publishableKey={publishableKey || ""} tokenCache={tokenCache}>
-      <ClerkLoaded>
-        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-            <ThemeProvider>
-              <KeyboardProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-                </Stack>
-              </KeyboardProvider>
-            </ThemeProvider>
-          </SafeAreaProvider>
-        </ConvexProviderWithClerk>
-      </ClerkLoaded>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <ThemeProvider>
+            <KeyboardProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+              </Stack>
+            </KeyboardProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </ConvexProviderWithClerk>
     </ClerkProvider>
   )
 }

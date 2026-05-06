@@ -1,8 +1,9 @@
 // components/CustomDrawer.tsx
-import { useRef } from "react"
-import { View, TouchableOpacity, ViewStyle, TextStyle } from "react-native"
-import { Link } from "expo-router"
-import { useClerk } from "@clerk/expo"
+import { useRef, useState } from "react"
+import { View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
+import { useRouter } from "expo-router"
+import { useClerk, useUserProfileModal } from "@clerk/expo"
+import { AuthView, UserButton } from "@clerk/expo/native"
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react"
 
 import { Button } from "@/components/Button"
@@ -40,7 +41,19 @@ export default function CustomDrawer({
 }: CustomDrawerProps) {
   const { themed } = useAppTheme()
   const { user } = useClerk()
+  const { presentUserProfile } = useUserProfileModal()
   const insets = useSafeAreaInsetsStyle(["top", "bottom"])
+
+  const [authOpen, setAuthOpen] = useState(false)
+  const [authKey, setAuthKey] = useState(0)
+
+  const openAuth = () => {
+    setAuthOpen(false)
+    requestAnimationFrame(() => {
+      setAuthKey((k) => k + 1)
+      setAuthOpen(true)
+    })
+  }
 
   const listRef = useRef<ListViewRef<ChatThread>>(null)
 
@@ -81,36 +94,19 @@ export default function CustomDrawer({
       </View>
       <View style={themed($userSection)}>
         <Authenticated>
-          <View style={themed($userProfileContainer)}>
-            <View style={themed($userAvatar)}>
-              <Text style={themed($userAvatarText)}>
-                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-              </Text>
+          <View style={themed($bottomSection)}>
+            <View style={themed($userButton)}>
+              <UserButton />
             </View>
-            <View style={themed($userDetails)}>
-              <Text style={themed($userName)} numberOfLines={1}>
-                {user?.fullName || "User"}
-              </Text>
-              <Text style={themed($userEmail)} numberOfLines={1}>
-                {user?.emailAddresses?.[0]?.emailAddress || "No email"}
-              </Text>
-            </View>
-          </View>
-          <View style={themed($signOutContainer)}>
-            <SignOutButton />
+            <Text text={user?.firstName || "Anonymous"} />
           </View>
         </Authenticated>
         <AuthLoading>
-          <View style={themed($loadingContainer)}>
-            <Text style={themed($loadingText)}>Loading...</Text>
-          </View>
+          <ActivityIndicator size={"small"} style={themed($activityIndicator)} />
         </AuthLoading>
         <Unauthenticated>
-          <Link href="/sign-in" asChild>
-            <TouchableOpacity style={themed($loginButton)}>
-              <Text style={themed($loginText)}>Sign In</Text>
-            </TouchableOpacity>
-          </Link>
+          <Button tx="auth:signin" onPress={openAuth} />
+          {authOpen ? <AuthView key={authKey} mode="signInOrUp" isDismissable={true} /> : null}
         </Unauthenticated>
       </View>
     </View>
@@ -125,6 +121,13 @@ const $container: ThemedStyle<ViewStyle> = (theme) => ({
 
 const $searchContainer: ThemedStyle<ViewStyle> = (theme) => ({
   padding: theme.spacing.xs,
+})
+
+const $activityIndicator: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: colors.palette.neutral100,
 })
 
 const $topSection: ThemedStyle<ViewStyle> = () => ({
@@ -142,34 +145,18 @@ const $userSection: ThemedStyle<ViewStyle> = (theme) => ({
   borderTopColor: theme.colors.palette.neutral300,
 })
 
-const $userProfileContainer: ThemedStyle<ViewStyle> = (theme) => ({
+const $bottomSection: ThemedStyle<ViewStyle> = (theme) => ({
+  padding: theme.spacing.md,
   flexDirection: "row",
   alignItems: "center",
-  padding: theme.spacing.sm,
-  backgroundColor: theme.colors.palette.neutral100,
-  borderRadius: theme.spacing.md,
-  marginBottom: theme.spacing.sm,
+  justifyContent: "space-between",
 })
 
-const $userAvatar: ThemedStyle<ViewStyle> = (theme) => ({
-  width: 48,
-  height: 48,
-  borderRadius: 24,
-  backgroundColor: theme.colors.palette.primary500,
-  alignItems: "center",
-  justifyContent: "center",
-  marginRight: theme.spacing.sm,
-})
-
-const $userAvatarText: ThemedStyle<TextStyle> = (theme) => ({
-  fontSize: 20,
-  fontWeight: "600",
-  color: theme.colors.palette.neutral100,
-})
-
-const $userDetails: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  justifyContent: "center",
+const $userButton: ThemedStyle<ViewStyle> = (theme) => ({
+  height: theme.spacing.lg,
+  width: theme.spacing.lg,
+  borderRadius: theme.spacing.lg,
+  overflow: "hidden",
 })
 
 const $signOutContainer: ThemedStyle<ViewStyle> = () => ({
