@@ -214,16 +214,10 @@ export const ModelSelector: React.FC<Props> = ({
                       )}
                     </View>
 
-                    {isDisabled && (
-                      <Ionicons name="lock-closed" size={16} color={theme.colors.textDim} />
-                    )}
+                    {isDisabled && <Icon icon="lock" size={16} color={theme.colors.textDim} />}
 
                     {isSelected && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={20}
-                        color={theme.colors.palette.accent500}
-                      />
+                      <Icon icon="check" size={20} color={theme.colors.palette.accent500} />
                     )}
                   </TouchableOpacity>
                 )

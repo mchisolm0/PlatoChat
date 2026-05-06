@@ -123,6 +123,7 @@ export const iconRegistry = {
   hidden: require("@assets/icons/hidden.png"),
   ladybug: require("@assets/icons/ladybug.png"),
   lock: require("@assets/icons/lock.png"),
+  lockOpen: require("@assets/icons/lock-open.png"),
   menu: require("@assets/icons/menu.png"),
   more: require("@assets/icons/more.png"),
   plus: require("@assets/icons/plus.png"),
