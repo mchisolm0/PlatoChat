@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
   const handleNewChat = () => {
     const threadArgs = isAuthenticated ? {} : { anonymousUserId: getAnonymousUserId() }
     createThread(threadArgs).then((threadId) =>
-      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } }),
+      router.push({ pathname: "/(home)/[threadId]", params: { threadId } }),
     )
   }
 

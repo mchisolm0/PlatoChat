@@ -66,7 +66,7 @@ function Root() {
           <ThemeProvider>
             <KeyboardProvider>
               <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+                <Stack.Screen name="(home)" options={{ headerShown: false }} />
               </Stack>
             </KeyboardProvider>
           </ThemeProvider>

@@ -81,7 +81,7 @@ export default function Layout() {
       const threadArgs = isAuthenticated ? {} : { anonymousUserId }
       const threadId = await createThread(threadArgs)
 
-      router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } })
+      router.replace({ pathname: "/(home)/[threadId]", params: { threadId } })
     } catch (error) {
       console.error("Failed to create thread:", error)
       reportCrash(error as Error, ErrorType.HANDLED)
