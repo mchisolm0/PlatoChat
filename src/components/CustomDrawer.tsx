@@ -8,7 +8,6 @@ import { Authenticated, AuthLoading, Unauthenticated } from "convex/react"
 
 import { Button } from "@/components/Button"
 import { ListView, ListViewRef } from "@/components/ListView"
-import { SignOutButton } from "@/components/SignOutButton"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"

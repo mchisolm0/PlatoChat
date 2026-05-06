@@ -135,7 +135,6 @@ export default function Layout() {
           }
         }}
       />
-      <Drawer.Screen name="settings" options={{ title: "Settings" }} />
     </Drawer>
   )
 }

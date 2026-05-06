@@ -62,9 +62,6 @@ export default function WelcomeScreen() {
       <View style={themed([$bottomContainer, $bottomContainerInsets])}>
         <Authenticated>
           <Text>{user?.emailAddresses[0].emailAddress}</Text>
-          <Pressable onPress={() => router.push("/(drawer)/settings")}>
-            <Text tx="settings:settings" />
-          </Pressable>
           <Button tx="chat:newChat" onPress={handleNewChat} />
         </Authenticated>
         <Unauthenticated>
@@ -79,9 +76,6 @@ export default function WelcomeScreen() {
             text="Sign up for more generous access (100 messages/day on free tier, 500 messages/day on pro tier):"
             style={themed($anonymousSubtext)}
           />
-          <View style={themed($linkContainer)}>
-            <Button preset="link" tx="auth:signin" onPress={() => router.push("/(auth)/sign-in")} />
-          </View>
         </Unauthenticated>
         <AuthLoading>
           <ActivityIndicator size={"large"} style={themed($activityIndicator)} />
