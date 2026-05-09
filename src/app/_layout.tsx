@@ -29,7 +29,7 @@ const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL
 if (!publishableKey) throw new Error("Missing Clerk publishable key")
 if (!convexUrl) throw new Error("Missing Convex URL")
 
-const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL as string)
+const convex = new ConvexReactClient(convexUrl)
 
 export { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary"
 
