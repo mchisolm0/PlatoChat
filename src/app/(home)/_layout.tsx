@@ -60,9 +60,6 @@ export default function Layout() {
 
   const router = useRouter()
 
-  const handleLogin = () => {
-    router.push("/(auth)/sign-in")
-  }
 
   const handleThreadPress = useCallback(
     (navigation: any) => (threadId: string) => {
@@ -113,7 +110,6 @@ export default function Layout() {
           {...props}
           chatThreads={userThreads}
           handleThreadPress={handleThreadPress(props.navigation)}
-          onLogin={handleLogin}
           onSearchChange={setSearchQuery}
           searchQuery={searchQuery}
         />

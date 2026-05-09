@@ -27,7 +27,6 @@ interface ChatThread {
 interface CustomDrawerProps {
   chatThreads: ChatThread[] | undefined
   handleThreadPress: (threadId: string) => void
-  onLogin: () => void
   onSearchChange: (query: string) => void
   searchQuery: string
 }
