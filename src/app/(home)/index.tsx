@@ -85,13 +85,6 @@ export default function WelcomeScreen() {
   )
 }
 
-const $centered: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  paddingHorizontal: spacing.lg,
-})
-
 const $activityIndicator: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flex: 1,
   justifyContent: "center",
