@@ -13,7 +13,6 @@ import {
   validateModelIdForAnonymousUser,
   ALL_MODELS,
 } from "./models"
-import { vProviderOptions } from "@convex-dev/agent/validators"
 
 const chatAgents = new Map<string, Agent<any>>()
 
