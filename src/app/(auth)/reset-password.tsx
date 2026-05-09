@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { View } from "react-native"
 import { Link, useRouter } from "expo-router"
-import { useSignUp } from "@clerk/clerk-expo"
+import { useSignUp } from "@clerk/expo"
 
 import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"

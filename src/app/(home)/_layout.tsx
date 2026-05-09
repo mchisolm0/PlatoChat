@@ -60,13 +60,10 @@ export default function Layout() {
 
   const router = useRouter()
 
-  const handleLogin = () => {
-    router.push("/(auth)/sign-in")
-  }
 
   const handleThreadPress = useCallback(
     (navigation: any) => (threadId: string) => {
-      router.push({ pathname: "/(drawer)/[threadId]", params: { threadId } })
+      router.push({ pathname: "/(home)/[threadId]", params: { threadId } })
       navigation.closeDrawer()
     },
     [router],
@@ -81,7 +78,7 @@ export default function Layout() {
       const threadArgs = isAuthenticated ? {} : { anonymousUserId }
       const threadId = await createThread(threadArgs)
 
-      router.replace({ pathname: "/(drawer)/[threadId]", params: { threadId } })
+      router.replace({ pathname: "/(home)/[threadId]", params: { threadId } })
     } catch (error) {
       console.error("Failed to create thread:", error)
       reportCrash(error as Error, ErrorType.HANDLED)
@@ -113,7 +110,6 @@ export default function Layout() {
           {...props}
           chatThreads={userThreads}
           handleThreadPress={handleThreadPress(props.navigation)}
-          onLogin={handleLogin}
           onSearchChange={setSearchQuery}
           searchQuery={searchQuery}
         />
@@ -135,7 +131,6 @@ export default function Layout() {
           }
         }}
       />
-      <Drawer.Screen name="settings" options={{ title: "Settings" }} />
     </Drawer>
   )
 }

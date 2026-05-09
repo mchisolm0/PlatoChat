@@ -87,6 +87,8 @@ web-build/
 !env.js
 .env
 .env.local
+.env.development
+.env.production
 
 /coverage
 

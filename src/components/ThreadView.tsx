@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { View } from "react-native"
 import type { ViewStyle } from "react-native"
-import { useUser } from "@clerk/clerk-expo"
+import { useUser } from "@clerk/expo"
 import { optimisticallySendMessage } from "@convex-dev/agent/react"
 import { useMutation } from "convex/react"
 
