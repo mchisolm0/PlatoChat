@@ -1,7 +1,6 @@
 // components/CustomDrawer.tsx
 import { useRef, useState } from "react"
 import { View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
-import { useRouter } from "expo-router"
 import { useClerk, useUserProfileModal } from "@clerk/expo"
 import { AuthView, UserButton } from "@clerk/expo/native"
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react"
