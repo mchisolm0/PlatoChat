@@ -101,5 +101,3 @@ web-build/
 !.yarn/versions
 
 .env.local
-
-.env.local
