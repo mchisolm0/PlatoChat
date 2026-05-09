@@ -47,12 +47,21 @@ export const PAID_MODELS: ModelConfig[] = [
     maxTokens: 32000,
   },
   {
+    id: "openai/gpt-oss-safeguard-20b",
+    displayName: "GPT-OSS Safeguard 20B",
+    shortName: "OSS Safeguard 20B",
+    provider: "openai",
+    tier: "free",
+    features: ["chat", "fast-response"],
+    maxTokens: 65000,
+  },
+  {
     id: "openai/gpt-oss-120b",
     displayName: "GPT-OSS 120B",
     shortName: "OSS 120B",
     provider: "openai",
     tier: "pro",
-    features: ["chat", "fast-response"],
+    features: ["thinking"],
     maxTokens: 32000,
   },
 ]

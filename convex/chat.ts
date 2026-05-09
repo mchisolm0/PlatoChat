@@ -13,6 +13,7 @@ import {
   validateModelIdForAnonymousUser,
   ALL_MODELS,
 } from "./models"
+import { vProviderOptions } from "@convex-dev/agent/validators"
 
 const chatAgents = new Map<string, Agent<any>>()
 
@@ -231,7 +232,17 @@ export const streamResponseAsync = internalAction({
       const result = await chatAgent.streamText(
         ctx,
         { threadId: args.threadId },
-        { promptMessageId: args.promptMessageId },
+        {
+          promptMessageId: args.promptMessageId,
+          providerOptions: {
+            openrouter: {
+              provider: {
+                sort: "price",
+                preferred_min_throughput: { p50: 200, p90: 100 },
+              },
+            },
+          },
+        },
         {
           saveStreamDeltas: true,
         },

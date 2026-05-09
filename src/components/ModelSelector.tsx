@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { View, TouchableOpacity, Alert, ViewStyle, ScrollView, TextStyle } from "react-native"
 import { useUser } from "@clerk/expo"
-import { Ionicons } from "@expo/vector-icons"
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated"
 
 import { ALL_MODELS, ModelConfig, getModelById } from "@/config/models"
