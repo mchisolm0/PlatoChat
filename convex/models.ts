@@ -2,7 +2,7 @@ export interface ModelConfig {
   id: string
   displayName: string
   shortName: string
-  provider: "openai" | "google" | "minimax"
+  provider: "openai" | "google" | "minimax" | "microsoft"
   tier: "free" | "pro"
   features?: string[]
   maxTokens?: number
@@ -29,13 +29,13 @@ export const PAID_MODELS: ModelConfig[] = [
     maxTokens: 8192,
   },
   {
-    id: "openai/gpt-5-nano",
-    displayName: "GPT-5 Nano",
-    shortName: "GPT-5 Nano",
-    provider: "openai",
+    id: "microsoft/phi-4-mini-instruct",
+    displayName: "Phi 4 Mini",
+    shortName: "Phi 4 Mini",
+    provider: "microsoft",
     tier: "pro",
-    features: ["chat", "fast-response", "improved-reasoning"],
-    maxTokens: 8192,
+    features: ["chat", "fast-response"],
+    maxTokens: 128000,
   },
   {
     id: "openai/gpt-oss-20b",
