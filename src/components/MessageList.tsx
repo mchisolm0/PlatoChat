@@ -18,6 +18,7 @@ import { api } from "convex/_generated/api"
 
 import { useAppTheme } from "@/theme/context"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { getChatErrorMessage } from "@/utils/chatErrors"
 import clipboard from "@/utils/clipboard"
 import { useResponsive } from "@/utils/useResponsive"
 
@@ -293,10 +294,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
         })
       } catch (error) {
         console.error("Failed to edit message:", error)
-        Alert.alert(
-          "Edit Failed",
-          error instanceof Error ? error.message : "Failed to edit message",
-        )
+        Alert.alert("Edit Failed", getChatErrorMessage(error, "Failed to edit message"))
       }
     },
     [editMessage, threadId, isAuthenticated],
@@ -314,10 +312,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
         })
       } catch (error) {
         console.error("Failed to retry message:", error)
-        Alert.alert(
-          "Retry Failed",
-          error instanceof Error ? error.message : "Failed to retry message",
-        )
+        Alert.alert("Retry Failed", getChatErrorMessage(error, "Failed to retry message"))
       }
     },
     [retryMessage, threadId, isAuthenticated],
