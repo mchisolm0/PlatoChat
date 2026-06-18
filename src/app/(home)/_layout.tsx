@@ -95,6 +95,7 @@ export default function Layout() {
         headerStyle: {
           backgroundColor: theme.colors.background,
         },
+        headerTintColor: theme.colors.palette.primary500,
         headerRight: () => (
           <CreateThreadIcon
             isCreatingThread={isCreatingThread}
