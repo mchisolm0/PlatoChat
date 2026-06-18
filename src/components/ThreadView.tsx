@@ -94,8 +94,16 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
     setThreadModelOverride(threadId, modelId)
   }
 
+  const handleMessageChange = (nextMessage: string) => {
+    setMessage(nextMessage)
+    if (errorMessage) {
+      setErrorMessage(null)
+    }
+  }
+
   const handleSendMessage = async () => {
-    if (!message.trim()) return
+    const trimmedMessage = message.trim()
+    if (!trimmedMessage) return
 
     setIsLoading(true)
     setErrorMessage(null)
@@ -104,7 +112,7 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
       const anonymousUserId = isAuthenticated ? undefined : getAnonymousUserId()
       await sendMessage({
         threadId,
-        prompt: message,
+        prompt: trimmedMessage,
         modelId: selectedModelId,
         anonymousUserId,
       })
@@ -135,8 +143,8 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
             editable={!isLoading}
             multiline
             returnKeyType="send"
-            blurOnSubmit={false}
-            onChangeText={setMessage}
+            blurOnSubmit
+            onChangeText={handleMessageChange}
             placeholderTx="chat:inputPlaceholder"
             onSubmitEditing={handleSendMessage}
             inputWrapperStyle={$inputWrapper}
@@ -145,7 +153,7 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
           <View style={$composerMeta}>
             <Text
               preset="formHelper"
-              text={isLoading ? "Plato is thinking…" : "Use return for a new line"}
+              text={isLoading ? "Plato is thinking…" : "Return sends the message"}
               style={$helperText}
             />
             <Text preset="formHelper" text={`${message.trim().length} chars`} style={$helperText} />
