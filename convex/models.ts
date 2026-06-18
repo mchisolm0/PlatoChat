@@ -15,7 +15,7 @@ export const FREE_MODEL: ModelConfig = {
   provider: "deepseek",
   tier: "free",
   features: ["chat", "low-cost", "reasoning", "1M context"],
-  maxTokens: 384000,
+  maxTokens: 1048576,
 }
 
 export const PAID_MODELS: ModelConfig[] = [
@@ -35,7 +35,7 @@ export const PAID_MODELS: ModelConfig[] = [
     provider: "anthropic",
     tier: "pro",
     features: ["chat", "coding", "writing", "1M context"],
-    maxTokens: 64000,
+    maxTokens: 128000,
   },
   {
     id: "deepseek/deepseek-v4-pro",
