@@ -2,67 +2,58 @@ export interface ModelConfig {
   id: string
   displayName: string
   shortName: string
-  provider: "openai" | "google" | "minimax" | "microsoft"
+  provider: "openai" | "google" | "anthropic" | "deepseek"
   tier: "free" | "pro"
   features?: string[]
   maxTokens?: number
 }
 
 export const FREE_MODEL: ModelConfig = {
-  id: "google/gemini-2.0-flash-001",
-  displayName: "Gemini 2.0 Flash",
-  shortName: "Gemini 2.0",
-  provider: "google",
-  tier: "pro",
-  features: ["chat", "advanced-reasoning", "multimodal"],
-  maxTokens: 8192,
+  id: "deepseek/deepseek-v4-flash",
+  displayName: "DeepSeek V4 Flash",
+  shortName: "V4 Flash",
+  provider: "deepseek",
+  tier: "free",
+  features: ["chat", "low-cost", "reasoning", "1M context"],
+  maxTokens: 65536,
 }
 
 export const PAID_MODELS: ModelConfig[] = [
   {
-    id: "minimax/minimax-m2.5:free",
-    displayName: "MiniMax M2.5",
-    shortName: "M2.5",
-    provider: "minimax",
-    tier: "free",
-    features: ["chat", "improved-reasoning"],
-    maxTokens: 8192,
+    id: "google/gemini-3.5-flash",
+    displayName: "Gemini 3.5 Flash",
+    shortName: "Gemini 3.5",
+    provider: "google",
+    tier: "pro",
+    features: ["chat", "reasoning", "multimodal", "1M context"],
+    maxTokens: 65536,
   },
   {
-    id: "microsoft/phi-4-mini-instruct",
-    displayName: "Phi 4 Mini",
-    shortName: "Phi 4 Mini",
-    provider: "microsoft",
+    id: "anthropic/claude-sonnet-4.6",
+    displayName: "Claude Sonnet 4.6",
+    shortName: "Sonnet 4.6",
+    provider: "anthropic",
     tier: "pro",
-    features: ["chat", "fast-response"],
+    features: ["chat", "coding", "writing", "1M context"],
     maxTokens: 128000,
   },
   {
-    id: "openai/gpt-oss-20b",
-    displayName: "GPT-OSS 20B",
-    shortName: "OSS 20B",
-    provider: "openai",
-    tier: "free",
-    features: ["chat", "fast-response"],
-    maxTokens: 32000,
+    id: "deepseek/deepseek-v4-pro",
+    displayName: "DeepSeek V4 Pro",
+    shortName: "V4 Pro",
+    provider: "deepseek",
+    tier: "pro",
+    features: ["chat", "deep reasoning", "coding", "1M context"],
+    maxTokens: 384000,
   },
   {
-    id: "openai/gpt-oss-safeguard-20b",
-    displayName: "GPT-OSS Safeguard 20B",
-    shortName: "OSS Safeguard 20B",
+    id: "openai/gpt-5.4-mini",
+    displayName: "GPT-5.4 Mini",
+    shortName: "GPT-5.4 Mini",
     provider: "openai",
     tier: "pro",
-    features: ["chat", "fast-response"],
-    maxTokens: 65000,
-  },
-  {
-    id: "openai/gpt-oss-120b",
-    displayName: "GPT-OSS 120B",
-    shortName: "OSS 120B",
-    provider: "openai",
-    tier: "pro",
-    features: ["chat"],
-    maxTokens: 32000,
+    features: ["chat", "reasoning", "coding", "tool use"],
+    maxTokens: 128000,
   },
 ]
 
