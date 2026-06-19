@@ -110,7 +110,24 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       ...existingPlugins,
       "@sentry/react-native",
       "@clerk/expo",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            deploymentTarget: "17.0",
+            extraPods: [
+              {
+                name: "GoogleUtilities",
+                modular_headers: true,
+              },
+              {
+                name: "RecaptchaInterop",
+                modular_headers: true,
+              },
+            ],
+          },
+        },
+      ],
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
@@ -132,6 +149,11 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: "0a5ec96e-6e3e-4d44-a355-f825a2debc4a",
       },
+    },
+
+    experiments: {
+      ...config.experiments,
+      autolinkingModuleResolution: true,
     },
   }
 
