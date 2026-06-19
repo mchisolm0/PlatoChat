@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { KeyboardAvoidingView, Platform, View } from "react-native"
 import type { TextStyle, ViewStyle } from "react-native"
 import { useUser } from "@clerk/expo"
@@ -32,6 +32,7 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [selectedModelId, setSelectedModelId] = useState<string>(getUserModelPreference())
+  const isSendingRef = useRef(false)
   const { user } = useUser()
 
   const sendMessage = useMutation(api.chat.sendMessage).withOptimisticUpdate(
@@ -104,7 +105,9 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
   const handleSendMessage = async () => {
     const trimmedMessage = message.trim()
     if (!trimmedMessage) return
+    if (isSendingRef.current) return
 
+    isSendingRef.current = true
     setIsLoading(true)
     setErrorMessage(null)
 
@@ -122,6 +125,7 @@ export const ThreadView: React.FC<Props> = ({ threadId }) => {
       setErrorMessage(getChatErrorMessage(error, "Unable to send message. Please try again."))
     } finally {
       setIsLoading(false)
+      isSendingRef.current = false
     }
   }
 

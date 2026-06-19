@@ -2,6 +2,14 @@ const RATE_LIMIT_MESSAGE_REGEX = /(?:AI\s+)?rate limited\. Please try again in \
 
 function extractErrorMessage(error: unknown): string | null {
   if (error instanceof Error) return error.message
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message
+  }
   if (typeof error === "string") return error
   return null
 }
