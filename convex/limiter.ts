@@ -47,19 +47,19 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 
   anonymousMessages: {
     kind: "fixed window",
-    rate: 5, // 5 messages per day
+    rate: 20, // 20 messages per day
     period: 24 * HOUR,
   },
 
   anonymousThreads: {
     kind: "fixed window",
-    rate: 2, // 2 threads per day
+    rate: 5, // 5 threads per day
     period: 24 * HOUR,
   },
 
   anonymousAiRequests: {
     kind: "fixed window",
-    rate: 5, // 5 AI requests per day
+    rate: 20, // 20 AI requests per day
     period: 24 * HOUR,
   },
 })

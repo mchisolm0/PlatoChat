@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
+  ActivityIndicator,
   Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -18,6 +19,7 @@ import { api } from "convex/_generated/api"
 
 import { useAppTheme } from "@/theme/context"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { getChatErrorMessage } from "@/utils/chatErrors"
 import clipboard from "@/utils/clipboard"
 import { useResponsive } from "@/utils/useResponsive"
 
@@ -157,23 +159,60 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [visibleText] = useSmoothText(contentText)
 
   const isUser = role === "user"
+  const displayName = isUser ? "You" : role === "assistant" ? "Plato" : role
   const $baseStyle: ViewStyle = {
-    padding: theme.spacing.md,
-    marginVertical: theme.spacing.xxs,
+    padding: theme.spacing.sm,
+    marginVertical: theme.spacing.xs,
     borderRadius: theme.spacing.md,
-    maxWidth: "80%",
+    maxWidth: isSmall ? "88%" : "76%",
+    minHeight: undefined,
+    borderWidth: 1,
   }
   const $userStyle: ViewStyle = {
     alignSelf: "flex-end",
-    backgroundColor: theme.colors.palette.primary400,
+    backgroundColor: theme.colors.palette.primary500,
+    borderColor: theme.colors.palette.primary600,
+    borderBottomRightRadius: theme.spacing.xxs,
     marginRight: theme.spacing.md,
   }
   const $assistantStyle: ViewStyle = {
     alignSelf: "flex-start",
-    backgroundColor: theme.colors.palette.neutral400,
+    backgroundColor: theme.colors.palette.neutral100,
+    borderColor: theme.colors.palette.neutral300,
+    borderBottomLeftRadius: theme.spacing.xxs,
     marginLeft: theme.spacing.md,
   }
   const $messageStyle = { ...$baseStyle, ...(isUser ? $userStyle : $assistantStyle) }
+  const $messageHeader: ViewStyle = {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  }
+  const $messageHeaderLeft: ViewStyle = {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  }
+  const $avatarDot: ViewStyle = {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: isUser ? theme.colors.palette.neutral100 : theme.colors.palette.primary500,
+  }
+  const $headingText: TextStyle = {
+    color: isUser ? theme.colors.palette.neutral100 : theme.colors.text,
+    letterSpacing: 0.2,
+  }
+  const $timestampText: TextStyle = {
+    color: isUser ? theme.colors.palette.primary100 : theme.colors.textDim,
+  }
+  const $userContentText: TextStyle = {
+    color: theme.colors.palette.neutral100,
+  }
+  const $emptyMessageText: TextStyle = {
+    color: isUser ? theme.colors.palette.primary100 : theme.colors.textDim,
+  }
   // Prefer stable database id for interactions; fall back to UI key if missing
   const messageId = response._id ?? response.key
 
@@ -201,18 +240,33 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const { githubTheme } = themes
 
+  const headingComponent = (
+    <View style={$messageHeader}>
+      <View style={$messageHeaderLeft}>
+        <View style={$avatarDot} />
+        <Text text={displayName} weight="bold" size="xxs" style={$headingText} />
+      </View>
+      {!!timestamp && <Text text={timestamp} size="xxs" style={$timestampText} />}
+    </View>
+  )
+
+  const contentComponent = isUser ? (
+    <Text
+      text={visibleText || "(No content)"}
+      style={visibleText ? $userContentText : $emptyMessageText}
+    />
+  ) : (
+    <Markdown
+      markdown={visibleText || "(No content)"}
+      theme={githubTheme}
+      onCodeCopy={(code) => clipboard.setString(code)}
+    />
+  )
+
   const messageCard = (
     <Card
-      heading={role.charAt(0).toUpperCase() + role.slice(1)}
-      ContentComponent={
-        <Markdown
-          markdown={visibleText || "(No content)"}
-          theme={githubTheme}
-          onCodeCopy={(code) => clipboard.setString(code)}
-        ></Markdown>
-      }
-      footer={timestamp}
-      FooterTextProps={{ style: { color: theme.colors.textDim } }}
+      HeadingComponent={headingComponent}
+      ContentComponent={contentComponent}
       style={$messageStyle}
     />
   )
@@ -275,6 +329,24 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
     flexDirection: "row",
     gap: theme.spacing.md,
   }
+  const $scrollContent: ViewStyle = {
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+  }
+  const $emptyCard: ViewStyle = {
+    marginHorizontal: theme.spacing.lg,
+    padding: theme.spacing.lg,
+    borderRadius: theme.spacing.lg,
+    backgroundColor: theme.colors.palette.neutral100,
+    borderWidth: 1,
+    borderColor: theme.colors.palette.neutral300,
+  }
+  const $emptyHeading: TextStyle = { textAlign: "center" }
+  const $emptyText: TextStyle = {
+    textAlign: "center",
+    color: theme.colors.textDim,
+    marginTop: theme.spacing.xs,
+  }
 
   // Mutation handlers
   const editMessage = useMutation(api.chat.editMessage)
@@ -293,10 +365,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
         })
       } catch (error) {
         console.error("Failed to edit message:", error)
-        Alert.alert(
-          "Edit Failed",
-          error instanceof Error ? error.message : "Failed to edit message",
-        )
+        Alert.alert("Edit Failed", getChatErrorMessage(error, "Failed to edit message"))
       }
     },
     [editMessage, threadId, isAuthenticated],
@@ -314,10 +383,7 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
         })
       } catch (error) {
         console.error("Failed to retry message:", error)
-        Alert.alert(
-          "Retry Failed",
-          error instanceof Error ? error.message : "Failed to retry message",
-        )
+        Alert.alert("Retry Failed", getChatErrorMessage(error, "Failed to retry message"))
       }
     },
     [retryMessage, threadId, isAuthenticated],
@@ -452,7 +518,14 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
   if (serverMessages.length === 0) {
     return (
       <View style={$centerContent}>
-        <Text preset="subheading" tx="chat:noMessages" />
+        <View style={$emptyCard}>
+          <Text preset="subheading" tx="chat:noMessages" style={$emptyHeading} />
+          <Text
+            preset="formHelper"
+            text="Ask a question, draft a message, or paste something you want help with."
+            style={$emptyText}
+          />
+        </View>
       </View>
     )
   }
@@ -465,11 +538,14 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
 
   const $typingBubbleStyle: ViewStyle = {
     alignSelf: "flex-start",
-    backgroundColor: theme.colors.palette.neutral400,
+    backgroundColor: theme.colors.palette.neutral100,
+    borderColor: theme.colors.palette.neutral300,
+    borderWidth: 1,
     marginLeft: theme.spacing.md,
     padding: theme.spacing.md,
     marginVertical: theme.spacing.xxs,
     borderRadius: theme.spacing.md,
+    borderBottomLeftRadius: theme.spacing.xxs,
     maxWidth: "80%",
   }
 
@@ -497,7 +573,11 @@ export const MessageList: React.FC<Props> = ({ threadId, pageSize = 10 }) => {
         onScroll={handleScroll}
         onContentSizeChange={handleContentSizeChange}
         scrollEventThrottle={100}
+        contentContainerStyle={$scrollContent}
       >
+        {isLoadingMore && (
+          <ActivityIndicator color={theme.colors.tint} style={{ marginBottom: theme.spacing.sm }} />
+        )}
         {uiMessages.map((item, index) => {
           const isLastUserMessage =
             item.role === "user" &&

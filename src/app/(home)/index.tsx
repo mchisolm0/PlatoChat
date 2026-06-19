@@ -1,7 +1,14 @@
-import { Image, ImageStyle, TextStyle, View, ViewStyle, Pressable, ActivityIndicator } from "react-native"
-import { AuthView } from "@clerk/expo/native"
-import { useAuth, useUser, useClerk, useUserProfileModal } from "@clerk/expo"
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ImageStyle,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native"
 import { useRouter } from "expo-router"
+import { useUser } from "@clerk/expo"
 import {
   Authenticated,
   Unauthenticated,
@@ -20,6 +27,7 @@ import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { getChatErrorMessage } from "@/utils/chatErrors"
 import { useSafeAreaInsetsStyle } from "@/utils/useSafeAreaInsetsStyle"
 
 const welcomeLogo = require("@assets/images/logo.png")
@@ -34,9 +42,12 @@ export default function WelcomeScreen() {
 
   const handleNewChat = () => {
     const threadArgs = isAuthenticated ? {} : { anonymousUserId: getAnonymousUserId() }
-    createThread(threadArgs).then((threadId) =>
-      router.push({ pathname: "/(home)/[threadId]", params: { threadId } }),
-    )
+    createThread(threadArgs)
+      .then((threadId) => router.push({ pathname: "/(home)/[threadId]", params: { threadId } }))
+      .catch((error) => {
+        console.error("Failed to create thread:", error)
+        Alert.alert("Unable to create chat", getChatErrorMessage(error, "Please try again."))
+      })
   }
 
   const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"])
@@ -67,7 +78,7 @@ export default function WelcomeScreen() {
         <Unauthenticated>
           <Text preset="subheading" text="Try PlatoChat" style={themed($anonymousHeading)} />
           <Button
-            text="Start Anonymous Chat (5 messages/day)"
+            text="Start Anonymous Chat (20 messages/day)"
             onPress={handleNewChat}
             style={themed($anonymousButton)}
           />
@@ -142,10 +153,4 @@ const $anonymousButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $anonymousSubtext: ThemedStyle<TextStyle> = ({ spacing }) => ({
   textAlign: "center",
   marginBottom: spacing.sm,
-})
-
-const $linkContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  gap: spacing.md,
-  justifyContent: "center",
 })

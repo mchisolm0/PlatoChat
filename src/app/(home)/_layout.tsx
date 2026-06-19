@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import { ActivityIndicator } from "react-native"
+import { ActivityIndicator, Alert } from "react-native"
 import { useRouter } from "expo-router"
 import { useMutation, useQuery, useConvexAuth } from "convex/react"
 import { Drawer } from "expo-router/drawer"
@@ -11,6 +11,7 @@ import { PressableIcon } from "@/components/Icon"
 import { useAppTheme } from "@/theme/context"
 import { spacing } from "@/theme/spacing"
 import { getAnonymousUserId } from "@/utils/anonymousUser"
+import { getChatErrorMessage } from "@/utils/chatErrors"
 import { reportCrash, ErrorType } from "@/utils/crashReporting"
 
 interface CreateThreadIconProps {
@@ -60,7 +61,6 @@ export default function Layout() {
 
   const router = useRouter()
 
-
   const handleThreadPress = useCallback(
     (navigation: any) => (threadId: string) => {
       router.push({ pathname: "/(home)/[threadId]", params: { threadId } })
@@ -82,6 +82,7 @@ export default function Layout() {
     } catch (error) {
       console.error("Failed to create thread:", error)
       reportCrash(error as Error, ErrorType.HANDLED)
+      Alert.alert("Unable to create chat", getChatErrorMessage(error, "Please try again."))
     } finally {
       setIsCreatingThread(false)
     }
@@ -94,6 +95,7 @@ export default function Layout() {
         headerStyle: {
           backgroundColor: theme.colors.background,
         },
+        headerTintColor: theme.colors.palette.primary500,
         headerRight: () => (
           <CreateThreadIcon
             isCreatingThread={isCreatingThread}
