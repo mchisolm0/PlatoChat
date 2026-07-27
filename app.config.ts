@@ -110,7 +110,24 @@ module.exports = ({ config }: ConfigContext): ExpoConfig => {
       ...existingPlugins,
       "@sentry/react-native",
       "@clerk/expo",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            deploymentTarget: "17.0",
+            extraPods: [
+              {
+                name: "GoogleUtilities",
+                modular_headers: true,
+              },
+              {
+                name: "RecaptchaInterop",
+                modular_headers: true,
+              },
+            ],
+          },
+        },
+      ],
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
